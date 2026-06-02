@@ -48,25 +48,34 @@ def _is_valid(key: str) -> bool:
 
 
 def _fetch_ticker(ticker: str, period: str, interval: str) -> list[dict]:
-    """Fetch OHLC data from Yahoo Finance. Returns list of {date, close, open, high, low}."""
+    """
+    Fetch OHLC data from Yahoo Finance without using pandas iterrows.
+    yfinance returns a DataFrame but we extract via index/column arrays
+    to avoid any pandas version dependency issues.
+    """
     try:
-        t = yf.Ticker(ticker)
+        t  = yf.Ticker(ticker)
         df = t.history(period=period, interval=interval, auto_adjust=True)
-        if df.empty:
+        if df is None or len(df) == 0:
             return []
-        df = df.reset_index()
-        # Date column can be 'Date' or 'Datetime'
-        date_col = "Date" if "Date" in df.columns else "Datetime"
+
+        # Extract index (dates) and column arrays directly — no iterrows needed
+        dates  = df.index.tolist()          # list of Timestamp objects
+        closes = df["Close"].tolist()
+        opens  = df["Open"].tolist()
+        highs  = df["High"].tolist()
+        lows   = df["Low"].tolist()
+
         result = []
-        for _, row in df.iterrows():
-            d = row[date_col]
-            date_str = d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d)[:10]
+        for i, d in enumerate(dates):
+            # Timestamp.date() is stdlib — no pandas needed after this point
+            date_str = str(d)[:10]          # "2024-01-15T..." → "2024-01-15"
             result.append({
                 "date":  date_str,
-                "close": round(float(row["Close"]), 2),
-                "open":  round(float(row["Open"]),  2),
-                "high":  round(float(row["High"]),  2),
-                "low":   round(float(row["Low"]),   2),
+                "close": round(float(closes[i]), 2),
+                "open":  round(float(opens[i]),  2),
+                "high":  round(float(highs[i]),  2),
+                "low":   round(float(lows[i]),   2),
             })
         return result
     except Exception as e:
