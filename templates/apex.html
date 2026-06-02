@@ -1,0 +1,555 @@
+{% extends "base.html" %}
+{% block title %}APEX Simulator — Praveen's Financial Tools{% endblock %}
+
+{% block head_extra %}
+<style>
+.apex-layout {
+  display: grid; grid-template-columns: 300px 1fr; gap: 0;
+  min-height: calc(100vh - 58px);
+}
+.apex-sidebar {
+  border-right: 0.5px solid var(--border);
+  padding: 1.5rem;
+  background: var(--bg1);
+  overflow-y: auto;
+}
+.apex-main {
+  padding: 1.5rem 2rem 3rem;
+  overflow-y: auto;
+}
+.apex-tabs {
+  display:flex; gap:2px; background:var(--bg2);
+  border-radius:var(--r); padding:3px; margin-bottom:1.5rem;
+  border:0.5px solid var(--border);
+}
+.apex-tab {
+  flex:1; padding:8px 4px; text-align:center; font-size:9px;
+  letter-spacing:.07em; text-transform:uppercase; color:var(--t3);
+  cursor:pointer; border-radius:var(--rs); transition:all .15s;
+  border:none; background:transparent; font-family:var(--mono);
+}
+.apex-tab:hover { color:var(--t2); }
+.apex-tab.on { background:var(--bg1); color:var(--t1); border:0.5px solid var(--border2); }
+.apanel { display:none; }
+.apanel.on { display:block; }
+.cape-status {
+  display:flex; align-items:center; gap:6px;
+  font-family:var(--mono); font-size:9px; color:var(--t3);
+  margin-bottom:1rem; padding:8px 10px;
+  background:var(--bg2); border-radius:var(--rs);
+  border:0.5px solid var(--border);
+}
+@media(max-width:720px) {
+  .apex-layout { grid-template-columns:1fr; }
+  .apex-sidebar { border-right:none; border-bottom:0.5px solid var(--border); }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Page header -->
+<div style="padding:1.5rem 2rem .75rem;border-bottom:0.5px solid var(--border);background:var(--bg1)">
+  <div style="max-width:1080px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <div>
+      <div class="page-title">APEX <span>Simulator</span></div>
+      <div class="page-subtitle">Block Bootstrap · CAPE-Adjusted · Fat-Tail Preserved · 10,000 Paths</div>
+    </div>
+    <div>
+      {% if sp500_live %}
+      <div class="live-badge"><span class="live-dot"></span>S&P 500 CAPE {{ sp500_cape }} · Live via FRED</div>
+      {% else %}
+      <div class="stale-badge">S&P 500 CAPE {{ sp500_cape }} · Cached estimate</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="apex-layout">
+
+<!-- ══════ SIDEBAR — INPUTS ══════ -->
+<div class="apex-sidebar">
+
+  <div class="cape-status">
+    {% if sp500_live %}
+      <span class="live-dot"></span>
+      <span>S&P 500 CAPE: <strong style="color:var(--t1)">{{ sp500_cape }}</strong> · {{ sp500_note }}</span>
+    {% else %}
+      <span>⚠</span>
+      <span>{{ sp500_note }}</span>
+    {% endif %}
+  </div>
+
+  <div class="sec">Portfolio</div>
+
+  <div class="field" style="margin-bottom:12px">
+    <label class="fl">Initial capital</label>
+    <div class="irow"><span class="pfx">€</span><input type="number" id="s-init" value="50000" min="0" step="1000"/></div>
+  </div>
+  <div class="field" style="margin-bottom:12px">
+    <label class="fl">Annual contribution</label>
+    <div class="irow"><span class="pfx">€</span><input type="number" id="s-contrib" value="12000" min="0" step="500"/></div>
+  </div>
+  <div class="field" style="margin-bottom:16px">
+    <label class="fl">Time horizon — <span id="s-yr-lbl" style="color:var(--t1)">20 years</span></label>
+    <input type="range" id="s-years" min="1" max="50" step="1" value="20"/>
+    <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:8px;color:var(--t3);margin-top:3px"><span>1</span><span>50</span></div>
+  </div>
+
+  <div class="sec">Algorithm controls</div>
+
+  <div class="field" style="margin-bottom:12px">
+    <label class="fl">CAPE ratio — <span id="cape-lbl" style="color:var(--t1)">{{ sp500_cape }}</span></label>
+    <input type="range" id="s-cape" min="8" max="50" step="0.5" value="{{ sp500_cape }}"/>
+    <div class="cape-bar-wrap" style="margin-top:6px"><div class="cape-bar" id="cape-bar"></div></div>
+    <div id="cape-hint" style="font-family:var(--mono);font-size:9px;color:var(--t3);margin-top:4px"></div>
+  </div>
+
+  <div class="field" style="margin-bottom:12px">
+    <label class="fl">Block size — <span id="block-lbl" style="color:var(--t1)">4 years</span></label>
+    <input type="range" id="s-block" min="1" max="10" step="1" value="4"/>
+    <div style="font-size:9px;color:var(--t3);font-family:var(--mono);margin-top:4px">Volatility clustering preserved</div>
+  </div>
+
+  <div class="field" style="margin-bottom:12px">
+    <label class="fl">Display mode</label>
+    <div class="tgl-grp">
+      <button class="tgl on" data-value="nominal" onclick="setMode(this)">Nominal</button>
+      <button class="tgl"    data-value="real"    onclick="setMode(this)">Real (inflation adj)</button>
+    </div>
+  </div>
+
+  <div class="field" style="margin-bottom:16px">
+    <label class="fl">Inflation rate</label>
+    <div class="irow">
+      <input type="number" id="s-inflation" value="2.5" min="0" max="15" step="0.1"/>
+      <span class="pfx">%</span>
+    </div>
+  </div>
+
+  <div id="prog-wrap" class="prog hidden" style="margin-bottom:1rem"><div class="prog-bar" id="prog-bar"></div></div>
+  <button class="btn btn-full" id="run-btn" onclick="runSim()">▶ Run 10,000 Paths</button>
+
+</div>
+
+<!-- ══════ MAIN — RESULTS ══════ -->
+<div class="apex-main">
+
+  <div class="apex-tabs">
+    <button class="apex-tab on" onclick="switchATab('proj')">① Projections</button>
+    <button class="apex-tab"    onclick="switchATab('target')">② Target Probability</button>
+    <button class="apex-tab"    onclick="switchATab('reverse')">③ Required Contribution</button>
+  </div>
+
+  <!-- ── PANEL 1: PROJECTIONS ── -->
+  <div class="apanel on" id="apanel-proj">
+    <div id="proj-placeholder" style="text-align:center;padding:4rem;color:var(--t3);font-family:var(--mono);font-size:10px">
+      Configure inputs and run simulation →
+    </div>
+    <div id="proj-results" class="hidden">
+      <div class="g5" style="margin-bottom:1rem">
+        <div class="met"><div class="ml">P10 Bear</div><div class="mv neg" id="r-p10">—</div><div class="ms">Pessimistic</div></div>
+        <div class="met"><div class="ml">P25</div>     <div class="mv wrn" id="r-p25">—</div><div class="ms">Below median</div></div>
+        <div class="met"><div class="ml">Median P50</div><div class="mv"  id="r-p50">—</div><div class="ms">Central path</div></div>
+        <div class="met"><div class="ml">P75</div>     <div class="mv pos" id="r-p75">—</div><div class="ms">Above median</div></div>
+        <div class="met"><div class="ml">P90 Bull</div><div class="mv pos" id="r-p90">—</div><div class="ms">Optimistic</div></div>
+      </div>
+      <div class="g3" style="margin-bottom:1rem">
+        <div class="met"><div class="ml">Ruin risk</div>       <div class="mv wrn" id="r-ruin">—</div><div class="ms">Below initial capital</div></div>
+        <div class="met"><div class="ml">CAPE-adj drift</div>  <div class="mv blu" id="r-drift">—</div><div class="ms">Expected real return</div></div>
+        <div class="met"><div class="ml">Paths</div>           <div class="mv">10,000</div><div class="ms">Block bootstrap</div></div>
+      </div>
+      <div class="card" style="margin-bottom:10px">
+        <div class="clbl">Simulation paths — 300 sampled</div>
+        <div class="cwrap" style="height:240px"><canvas id="ch-paths"></canvas></div>
+        <div class="leg">
+          <span class="li"><span class="ld" style="background:rgba(128,128,160,.12)"></span>Paths</span>
+          <span class="li"><span class="ld" style="background:#ef4444"></span>P10</span>
+          <span class="li"><span class="ld" style="background:#f59e0b"></span>P25</span>
+          <span class="li"><span class="ld" style="background:#eeeef2"></span>Median</span>
+          <span class="li"><span class="ld" style="background:#22c55e"></span>P90</span>
+        </div>
+      </div>
+      <div class="g2" style="margin-bottom:10px">
+        <div class="card">
+          <div class="clbl">Final value distribution</div>
+          <div class="cwrap" style="height:180px"><canvas id="ch-hist"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="clbl">Percentile fan over time</div>
+          <div class="cwrap" style="height:180px"><canvas id="ch-fan"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PANEL 2: TARGET ── -->
+  <div class="apanel" id="apanel-target">
+    <div class="g2" style="margin-bottom:1rem">
+      <div class="card">
+        <label class="fl">Target portfolio value</label>
+        <div class="irow"><span class="pfx">€</span><input type="number" id="tgt-val" value="500000" min="1000" step="10000"/></div>
+      </div>
+      <div class="card" style="display:flex;align-items:flex-end">
+        <button class="btn" style="width:100%" onclick="runTarget()">Calculate probability</button>
+      </div>
+    </div>
+    <div id="tgt-results" class="hidden">
+      <div class="g3" style="margin-bottom:1rem">
+        <div style="text-align:center;padding:1.5rem;background:var(--bg2);border-radius:var(--r)">
+          <div style="font-size:52px;font-weight:500;font-family:var(--mono);line-height:1" id="tgt-prob">—</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-top:6px">Probability of reaching target</div>
+        </div>
+        <div class="met"><div class="ml">Paths that hit</div><div class="mv" id="tgt-hit" style="font-size:14px">—</div></div>
+        <div class="met"><div class="ml">Avg shortfall if missed</div><div class="mv neg" id="tgt-sf" style="font-size:14px">—</div></div>
+      </div>
+      <div class="card" style="margin-bottom:10px">
+        <div class="clbl">Probability of hitting target by each year</div>
+        <div class="cwrap" style="height:190px"><canvas id="ch-tgtprob"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PANEL 3: REVERSE ── -->
+  <div class="apanel" id="apanel-reverse">
+    <div class="info">
+      <strong>Inverse solver:</strong> binary-searches the contribution space so the chosen percentile path hits your target. Runs the full block bootstrap at each iteration — slower than a formula, but accounts for fat tails and CAPE adjustment honestly.
+    </div>
+    <div class="g2" style="margin-bottom:1rem">
+      <div class="card">
+        <label class="fl">Target final value</label>
+        <div class="irow"><span class="pfx">€</span><input type="number" id="rv-target" value="1000000" min="10000" step="10000"/></div>
+      </div>
+      <div class="card">
+        <label class="fl">Confidence percentile</label>
+        <div class="tgl-grp">
+          <button class="tgl"    data-value="25" onclick="setRvPct(this)">P25</button>
+          <button class="tgl on" data-value="50" onclick="setRvPct(this)">P50</button>
+          <button class="tgl"    data-value="75" onclick="setRvPct(this)">P75</button>
+          <button class="tgl"    data-value="90" onclick="setRvPct(this)">P90</button>
+        </div>
+        <div style="font-size:9px;color:var(--t3);font-family:var(--mono);margin-top:5px">P50 = median path hits. P75 = 75% of paths hit.</div>
+      </div>
+    </div>
+    <div class="prog hidden" id="rv-prog-wrap" style="margin-bottom:1rem"><div class="prog-bar" id="rv-prog-bar"></div></div>
+    <button class="btn btn-full" id="rv-btn" onclick="runReverse()">▶ Solve Required Contribution</button>
+    <div id="rv-results" class="hidden">
+      <div style="text-align:center;padding:1.5rem;background:var(--bg2);border-radius:var(--r);border:0.5px solid var(--border2);margin-bottom:1rem">
+        <div style="font-size:44px;font-weight:500;font-family:var(--mono);color:var(--green2);line-height:1" id="rv-ans">—</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-top:7px">Required annual contribution</div>
+        <div style="font-size:10px;color:var(--t2);margin-top:8px;font-family:var(--mono)" id="rv-sub"></div>
+      </div>
+      <div class="g3" style="margin-bottom:1rem">
+        <div class="met"><div class="ml">Total invested</div><div class="mv blu" id="rv-total">—</div></div>
+        <div class="met"><div class="ml">Growth from returns</div><div class="mv pos" id="rv-growth">—</div></div>
+        <div class="met"><div class="ml">Return on capital</div><div class="mv" id="rv-ror">—</div></div>
+      </div>
+      <div class="card" style="margin-bottom:10px">
+        <div class="clbl">Capital deployed vs portfolio value (median path)</div>
+        <div class="cwrap" style="height:210px"><canvas id="rv-ch"></canvas></div>
+        <div class="leg">
+          <span class="li"><span class="ld" style="background:#3b82f6"></span>Cumulative invested</span>
+          <span class="li"><span class="ld" style="background:#22c55e"></span>Portfolio value</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     JAVASCRIPT — All simulation logic
+══════════════════════════════════════════════ -->
+<script>
+// ── Historical S&P 500 annual returns 1928-2024 ──────────────────────────
+const HIST = [
+  0.4381,-0.0830,-0.2490,-0.4334,-0.0819,0.5374,-0.0135,0.4674,-0.3534,0.2938,
+  0.3123,-0.0641,-0.0918,0.2134,-0.1265,-0.1081,0.2189,0.2529,0.1972,0.3581,
+  0.0548,0.1879,0.3232,0.2368,-0.0121,0.5256,0.3262,0.0744,-0.1046,0.2569,
+  0.4336,-0.0885,0.2680,0.2261,0.1641,-0.1006,0.2422,0.1845,-0.0989,0.3299,
+  0.2378,0.1106,-0.1367,0.2397,-0.1466,0.3724,-0.2647,-0.0718,-0.1131,0.1941,
+  0.3210,0.1842,0.3239,-0.0491,0.2141,-0.0318,0.2244,0.6256,0.3173,-0.0491,
+  0.1650,0.3149,-0.0306,0.2996,0.0762,0.1008,0.0132,0.3710,0.2268,0.2834,
+  0.2853,0.2104,-0.0910,-0.1189,-0.2210,0.2868,0.1088,0.0491,0.1579,0.0549,
+ -0.3700,0.2646,0.1506,0.0211,0.1589,0.3215,0.1352,0.0196,0.2160,-0.0118,
+  0.2888,0.3149,-0.1840,0.2840,0.1489,0.2861,-0.1944,0.2629,0.1126,0.2490,
+];
+const HIST_MEAN = HIST.reduce((s,r)=>s+r,0)/HIST.length;
+
+const CAPE_LUT = [
+  [8,0.155],[10,0.138],[12,0.122],[15,0.108],[18,0.090],
+  [22,0.073],[26,0.058],[30,0.042],[35,0.025],[40,0.012],[45,0.002],[50,-0.008]
+];
+
+// ── State ──────────────────────────────────────────────────────────────────
+let simData = null;
+let rvPct   = 50;
+let dispMode= 'nominal';
+
+// ── Slider wiring ──────────────────────────────────────────────────────────
+document.getElementById('s-years').addEventListener('input',function(){
+  document.getElementById('s-yr-lbl').textContent=this.value+' years';
+});
+document.getElementById('s-cape').addEventListener('input',updateCape);
+document.getElementById('s-block').addEventListener('input',function(){
+  document.getElementById('block-lbl').textContent=this.value+' years';
+});
+
+function updateCape(){
+  const c=parseFloat(document.getElementById('s-cape').value);
+  document.getElementById('cape-lbl').textContent=c.toFixed(1);
+  const pct=Math.min(100,(c-8)/(50-8)*100);
+  const bar=document.getElementById('cape-bar');
+  bar.style.width=pct+'%';
+  bar.style.background=c<15?'#22c55e':c<25?'#f59e0b':c<35?'#ef4444':'#dc2626';
+  let hint='';
+  if(c<15)hint='Historically cheap — return tailwind';
+  else if(c<22)hint='Fair value — neutral outlook';
+  else if(c<30)hint='Moderately expensive';
+  else if(c<38)hint='Significantly overvalued';
+  else hint='Extreme overvaluation';
+  document.getElementById('cape-hint').textContent=hint;
+}
+updateCape();
+
+function setMode(el){
+  document.querySelectorAll('[data-value=nominal],[data-value=real]').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  dispMode=el.dataset.value;
+}
+function setRvPct(el){
+  document.querySelectorAll('#apanel-reverse .tgl').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  rvPct=parseInt(el.dataset.value);
+}
+function switchATab(name){
+  document.querySelectorAll('.apex-tab').forEach((t,i)=>{
+    t.classList.toggle('on',['proj','target','reverse'][i]===name);
+  });
+  document.querySelectorAll('.apanel').forEach(p=>p.classList.remove('on'));
+  document.getElementById('apanel-'+name).classList.add('on');
+}
+
+// ── Core algorithm ─────────────────────────────────────────────────────────
+function capeToReturn(cape){
+  const lut=CAPE_LUT;
+  if(cape<=lut[0][0]) return lut[0][1];
+  if(cape>=lut[lut.length-1][0]) return lut[lut.length-1][1];
+  for(let i=0;i<lut.length-1;i++){
+    if(cape>=lut[i][0]&&cape<=lut[i+1][0]){
+      const t=(cape-lut[i][0])/(lut[i+1][0]-lut[i][0]);
+      return lut[i][1]+t*(lut[i+1][1]-lut[i][1]);
+    }
+  }
+  return 0.06;
+}
+
+function applyMode(v,y,infl){
+  return dispMode==='real'?v/Math.pow(1+infl,y):v;
+}
+
+function blockBootstrap(N,initial,contrib,years,blockSz,cape,inflation){
+  const capeRet=capeToReturn(cape);
+  const histReal=HIST_MEAN-0.03;
+  const ratio=(1+capeRet)/(1+histReal);
+  const adjRets=HIST.map(r=>(1+r)*ratio-1);
+  const H=adjRets.length;
+  const infl=inflation/100;
+  const allPaths=[];
+  for(let i=0;i<N;i++){
+    let v=initial; const path=[applyMode(v,0,infl)]; let pool=[];
+    for(let y=0;y<years;y++){
+      if(!pool.length){
+        const s=Math.floor(Math.random()*(H-blockSz+1));
+        pool=adjRets.slice(s,s+blockSz);
+      }
+      v=v*(1+pool.shift())+contrib;
+      path.push(applyMode(v,y+1,infl));
+    }
+    allPaths.push(path);
+  }
+  return allPaths;
+}
+
+// ── Run simulation ─────────────────────────────────────────────────────────
+function runSim(){
+  const btn=document.getElementById('run-btn');
+  const prog=document.getElementById('prog-wrap');
+  const bar=document.getElementById('prog-bar');
+  btn.disabled=true; btn.textContent='Simulating…';
+  prog.classList.remove('hidden'); bar.style.width='20%';
+  setTimeout(()=>{
+    bar.style.width='55%';
+    const N=10000;
+    const initial=parseFloat(document.getElementById('s-init').value)||0;
+    const contrib=parseFloat(document.getElementById('s-contrib').value)||0;
+    const years=parseInt(document.getElementById('s-years').value);
+    const blockSz=parseInt(document.getElementById('s-block').value);
+    const cape=parseFloat(document.getElementById('s-cape').value);
+    const infl=parseFloat(document.getElementById('s-inflation').value)||0;
+    const paths=blockBootstrap(N,initial,contrib,years,blockSz,cape,infl);
+    bar.style.width='85%';
+    const finals=paths.map(p=>p[years]).sort((a,b)=>a-b);
+    const p10=pctile(finals,10),p25=pctile(finals,25),p50=pctile(finals,50),
+          p75=pctile(finals,75),p90=pctile(finals,90);
+    const ruin=finals.filter(v=>v<initial).length/N;
+    simData={paths,finals,years,initial,contrib,blockSz,cape,infl};
+    document.getElementById('r-p10').textContent=fmtM(p10);
+    document.getElementById('r-p25').textContent=fmtM(p25);
+    document.getElementById('r-p50').textContent=fmtM(p50);
+    document.getElementById('r-p75').textContent=fmtM(p75);
+    document.getElementById('r-p90').textContent=fmtM(p90);
+    document.getElementById('r-ruin').textContent=(ruin*100).toFixed(1)+'%';
+    document.getElementById('r-drift').textContent=(capeToReturn(cape)*100).toFixed(1)+'%/yr';
+    document.getElementById('proj-placeholder').classList.add('hidden');
+    document.getElementById('proj-results').classList.remove('hidden');
+    drawPaths(paths,years); drawHist(finals,p10,p50,p90); drawFan(paths,years);
+    bar.style.width='100%';
+    setTimeout(()=>{prog.classList.add('hidden');btn.disabled=false;btn.textContent='▶ Run 10,000 Paths';},300);
+  },40);
+}
+
+// ── Charts ─────────────────────────────────────────────────────────────────
+function pathAt(paths,years,p){
+  const f=paths.map(x=>x[years]).sort((a,b)=>a-b);
+  const tv=pctile(f,p);
+  return paths.reduce((b,x)=>Math.abs(x[years]-tv)<Math.abs(b[years]-tv)?x:b);
+}
+function drawPaths(paths,years){
+  const lbl=Array.from({length:years+1},(_,i)=>'Y'+i);
+  const step=Math.floor(paths.length/300);
+  const sample=Array.from({length:300},(_,i)=>paths[i*step]);
+  const ds=sample.map(p=>({data:p,borderColor:'rgba(128,128,160,0.07)',borderWidth:1,pointRadius:0,tension:.3,fill:false}));
+  [{p:10,c:'#ef4444',d:[5,3]},{p:25,c:'#f59e0b',d:[3,2]},{p:50,c:'#eeeef4',d:[]},{p:90,c:'#22c55e',d:[]}]
+    .forEach(({p,c,d})=>ds.push({data:pathAt(paths,years,p),borderColor:c,borderWidth:2,borderDash:d,pointRadius:0,tension:.3,fill:false}));
+  killChart('paths');
+  _charts['paths']=new Chart(document.getElementById('ch-paths'),{
+    type:'line',data:{labels:lbl,datasets:ds},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,
+      plugins:{legend:{display:false},tooltip:{enabled:false}},
+      scales:{x:{ticks:{...TC,maxTicksLimit:12},grid:{color:GC}},y:{ticks:{...TC,callback:v=>fmtM(v)},grid:{color:GC}}}}
+  });
+}
+function drawHist(sorted,p10,p50,p90){
+  const min=sorted[0],max=sorted[sorted.length-1],bins=50,bs=(max-min)/bins;
+  const counts=new Array(bins).fill(0);
+  const colors=new Array(bins).fill('rgba(128,128,160,0.2)');
+  sorted.forEach(v=>{let b=Math.min(Math.floor((v-min)/bs),bins-1);counts[b]++;});
+  counts.forEach((_,i)=>{
+    const c=min+(i+.5)*bs;
+    if(Math.abs(c-p10)<bs*2)colors[i]='rgba(239,68,68,0.6)';
+    else if(Math.abs(c-p50)<bs*2)colors[i]='rgba(238,238,244,0.35)';
+    else if(Math.abs(c-p90)<bs*2)colors[i]='rgba(34,197,94,0.6)';
+  });
+  killChart('hist');
+  _charts['hist']=new Chart(document.getElementById('ch-hist'),{
+    type:'bar',data:{labels:Array.from({length:bins},(_,i)=>fmtM(min+(i+.5)*bs)),datasets:[{data:counts,backgroundColor:colors,borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.raw+' paths'}}},
+      scales:{x:{ticks:{...TC,maxTicksLimit:7},grid:{display:false}},y:{ticks:TC,grid:{color:GC}}}}
+  });
+}
+function drawFan(paths,years){
+  const lbl=Array.from({length:years+1},(_,i)=>'Y'+i);
+  const bands={p10:[],p25:[],p50:[],p75:[],p90:[]};
+  for(let y=0;y<=years;y++){
+    const col=paths.map(p=>p[y]).sort((a,b)=>a-b);
+    bands.p10.push(pctile(col,10));bands.p25.push(pctile(col,25));bands.p50.push(pctile(col,50));
+    bands.p75.push(pctile(col,75));bands.p90.push(pctile(col,90));
+  }
+  killChart('fan');
+  _charts['fan']=new Chart(document.getElementById('ch-fan'),{
+    type:'line',data:{labels:lbl,datasets:[
+      {data:bands.p90,borderColor:'rgba(34,197,94,0)',borderWidth:0,pointRadius:0,fill:'+1',backgroundColor:'rgba(34,197,94,0.08)'},
+      {data:bands.p75,borderColor:'#22c55e',borderWidth:1.5,pointRadius:0,tension:.3,fill:'+1',backgroundColor:'rgba(34,197,94,0.1)'},
+      {data:bands.p50,borderColor:'#eeeef4',borderWidth:2,pointRadius:0,tension:.3,fill:false},
+      {data:bands.p25,borderColor:'#f59e0b',borderWidth:1.5,pointRadius:0,tension:.3,fill:'+1',backgroundColor:'rgba(245,158,11,0.07)'},
+      {data:bands.p10,borderColor:'rgba(239,68,68,0)',borderWidth:0,pointRadius:0,fill:false},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>['P90','P75','Median','P25','P10'][ctx.datasetIndex]+': '+fmtM(ctx.raw)}}},
+      scales:{x:{ticks:{...TC,maxTicksLimit:12},grid:{color:GC}},y:{ticks:{...TC,callback:v=>fmtM(v)},grid:{color:GC}}}}
+  });
+}
+
+// ── Target probability ─────────────────────────────────────────────────────
+function runTarget(){
+  if(!simData){alert('Run simulation first.');return;}
+  const target=parseFloat(document.getElementById('tgt-val').value);
+  const {paths,years}=simData;
+  const N=paths.length,hit=paths.filter(p=>p[years]>=target).length;
+  const prob=hit/N,missed=paths.filter(p=>p[years]<target);
+  const sf=missed.length?missed.reduce((s,p)=>s+(target-p[years]),0)/missed.length:0;
+  const c=scoreColor(Math.round(prob*100));
+  const el=document.getElementById('tgt-prob');
+  el.textContent=(prob*100).toFixed(1)+'%';el.style.color=c;
+  document.getElementById('tgt-hit').textContent=hit.toLocaleString()+' / '+N.toLocaleString();
+  document.getElementById('tgt-sf').textContent=missed.length?fmtM(sf):'—';
+  const yl=Array.from({length:years+1},(_,i)=>'Y'+i);
+  const yp=yl.map((_,y)=>parseFloat(((paths.filter(p=>p[y]>=target).length/N)*100).toFixed(2)));
+  document.getElementById('tgt-results').classList.remove('hidden');
+  killChart('tgtprob');
+  _charts['tgtprob']=new Chart(document.getElementById('ch-tgtprob'),{
+    type:'line',data:{labels:yl,datasets:[{data:yp,borderColor:c,borderWidth:2,pointRadius:0,tension:.4,fill:true,backgroundColor:c.replace(')',',0.1)').replace('var','rgba')||c+'18'}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.raw.toFixed(1)+'%'}}},
+      scales:{x:{ticks:{...TC,maxTicksLimit:12},grid:{color:GC}},y:{min:0,max:100,ticks:{...TC,callback:v=>v+'%'},grid:{color:GC}}}}
+  });
+}
+
+// ── Required contribution binary search ────────────────────────────────────
+function runReverse(){
+  const btn=document.getElementById('rv-btn');
+  const prog=document.getElementById('rv-prog-wrap');
+  const bar=document.getElementById('rv-prog-bar');
+  btn.disabled=true;btn.textContent='Solving…';
+  prog.classList.remove('hidden');bar.style.width='5%';
+  const target=parseFloat(document.getElementById('rv-target').value)||1000000;
+  const initial=parseFloat(document.getElementById('s-init').value)||0;
+  const years=parseInt(document.getElementById('s-years').value);
+  const blockSz=parseInt(document.getElementById('s-block').value);
+  const cape=parseFloat(document.getElementById('s-cape').value);
+  const infl=parseFloat(document.getElementById('s-inflation').value)||0;
+  const N=2500,ITERS=26;
+  let lo=-initial,hi=target*3,C=(lo+hi)/2;
+  function iter(i){
+    bar.style.width=((i/ITERS)*88+5)+'%';
+    C=(lo+hi)/2;
+    const paths=blockBootstrap(N,initial,C,years,blockSz,cape,infl);
+    const finals=paths.map(p=>p[years]).sort((a,b)=>a-b);
+    pctile(finals,rvPct)<target?lo=C:hi=C;
+    if(i<ITERS&&hi-lo>10) setTimeout(()=>iter(i+1),1);
+    else { bar.style.width='100%'; setTimeout(()=>finaliseRv(C,initial,target,years,blockSz,cape,infl,btn,prog),80); }
+  }
+  setTimeout(()=>iter(0),30);
+}
+function finaliseRv(C,initial,target,years,blockSz,cape,infl,btn,prog){
+  btn.disabled=false;btn.textContent='▶ Solve Required Contribution';
+  prog.classList.add('hidden');
+  const annC=Math.max(0,C);
+  const totalIn=initial+annC*years;
+  const growth=target-totalIn;
+  document.getElementById('rv-ans').textContent=fmtM(annC);
+  document.getElementById('rv-total').textContent=fmtM(totalIn);
+  document.getElementById('rv-growth').textContent=fmtM(growth);
+  document.getElementById('rv-ror').textContent=((growth/totalIn)*100).toFixed(1)+'%';
+  document.getElementById('rv-sub').textContent=`P${rvPct} confidence · ${years}-yr horizon · CAPE ${cape}${C<0?' · Initial capital alone is sufficient':''}`;
+  document.getElementById('rv-results').classList.remove('hidden');
+  const paths2=blockBootstrap(1500,initial,annC,years,blockSz,cape,infl);
+  const lbl=Array.from({length:years+1},(_,i)=>'Y'+i);
+  const med=lbl.map((_,y)=>{const col=paths2.map(p=>p[y]).sort((a,b)=>a-b);return pctile(col,50);});
+  const invested=lbl.map((_,y)=>initial+annC*y);
+  killChart('rv');
+  _charts['rv']=new Chart(document.getElementById('rv-ch'),{
+    type:'line',data:{labels:lbl,datasets:[
+      {label:'Invested',data:invested,borderColor:'#3b82f6',borderWidth:2,pointRadius:0,tension:.3,fill:true,backgroundColor:'rgba(59,130,246,0.1)'},
+      {label:'Portfolio',data:med,borderColor:'#22c55e',borderWidth:2,pointRadius:0,tension:.3,fill:false},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+fmtM(ctx.raw)}}},
+      scales:{x:{ticks:{...TC,maxTicksLimit:12},grid:{color:GC}},y:{ticks:{...TC,callback:v=>fmtM(v)},grid:{color:GC}}}}
+  });
+}
+</script>
+{% endblock %}

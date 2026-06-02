@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}Praveen's Financial Tools — Home{% endblock %}
+
+{% block head_extra %}
+<style>
+.hero {
+  max-width:1080px; margin:0 auto;
+  padding:5rem 2rem 3rem;
+  display:grid; grid-template-columns:1fr 1fr; gap:4rem; align-items:center;
+}
+.hero-text {}
+.hero-eyebrow {
+  font-family:var(--mono); font-size:9px; color:var(--green2);
+  letter-spacing:.15em; text-transform:uppercase; margin-bottom:1rem;
+  display:flex; align-items:center; gap:8px;
+}
+.hero-eyebrow::before { content:''; width:24px; height:1px; background:var(--green2); }
+.hero-title {
+  font-family:var(--display); font-size:44px; font-weight:800;
+  line-height:1.05; letter-spacing:-.03em; color:var(--t1); margin-bottom:1.25rem;
+}
+.hero-title em { color:var(--green2); font-style:normal; }
+.hero-desc { font-size:14px; color:var(--t2); line-height:1.8; margin-bottom:2rem; max-width:420px; }
+.hero-ctas { display:flex; gap:10px; flex-wrap:wrap; }
+.hero-visual {
+  background:var(--bg1); border:0.5px solid var(--border2);
+  border-radius:12px; padding:1.5rem; position:relative; overflow:hidden;
+}
+.hero-visual::before {
+  content:''; position:absolute; top:-40px; right:-40px;
+  width:200px; height:200px; border-radius:50%;
+  background:radial-gradient(circle, rgba(34,197,94,.06) 0%, transparent 70%);
+}
+.terminal-line {
+  font-family:var(--mono); font-size:10px; color:var(--t3);
+  margin-bottom:6px; display:flex; gap:8px;
+}
+.terminal-line .prompt { color:var(--green2); }
+.terminal-line .val    { color:var(--t1); }
+.terminal-line .neg    { color:var(--red2); }
+.terminal-line .pos    { color:var(--green2); }
+
+.tools-section { max-width:1080px; margin:0 auto; padding:2rem 2rem 4rem; }
+.tool-card {
+  background:var(--bg1); border:0.5px solid var(--border);
+  border-radius:12px; padding:1.75rem 2rem;
+  display:grid; grid-template-columns:1fr auto;
+  gap:1.5rem; align-items:center;
+  transition:border-color .2s, box-shadow .2s;
+  text-decoration:none;
+}
+.tool-card:hover { border-color:var(--border2); box-shadow:0 0 40px rgba(34,197,94,.04); }
+.tool-num { font-family:var(--display); font-size:48px; font-weight:800; color:var(--bg3); line-height:1; }
+.tool-name { font-family:var(--display); font-size:20px; font-weight:700; color:var(--t1); margin-bottom:6px; }
+.tool-desc { font-size:12px; color:var(--t2); line-height:1.7; max-width:500px; }
+.tool-tags { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+.tool-tag { font-family:var(--mono); font-size:8px; padding:2px 8px; border-radius:2px;
+  border:0.5px solid var(--border); color:var(--t3); letter-spacing:.05em; text-transform:uppercase; }
+.tool-arrow { font-size:24px; color:var(--t3); }
+
+.principles { max-width:1080px; margin:0 auto; padding:0 2rem 4rem; }
+.pr-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.pr-card { background:var(--bg2); border-radius:var(--r); padding:1.25rem; }
+.pr-icon { font-size:20px; margin-bottom:10px; }
+.pr-title { font-family:var(--display); font-size:14px; font-weight:600; color:var(--t1); margin-bottom:6px; }
+.pr-text  { font-size:11px; color:var(--t3); line-height:1.7; font-family:var(--mono); }
+
+@media(max-width:720px) {
+  .hero { grid-template-columns:1fr; gap:2rem; padding:3rem 1.5rem; }
+  .hero-title { font-size:32px; }
+  .hero-visual { display:none; }
+  .pr-grid { grid-template-columns:1fr 1fr; }
+  .tool-card { grid-template-columns:1fr; }
+  .tool-arrow { display:none; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── HERO ── -->
+<div class="hero">
+  <div class="hero-text fade-up">
+    <div class="hero-eyebrow">Personal Finance Infrastructure</div>
+    <h1 class="hero-title">
+      Honest tools<br/>for serious<br/><em>investors</em>
+    </h1>
+    <p class="hero-desc">
+      Valuation-driven portfolio simulation and index recommendation.
+      Built on block bootstrapping, CAPE-adjusted returns, and live market data —
+      not on the optimistic assumptions most tools hide behind.
+    </p>
+    <div class="hero-ctas">
+      <a href="/apex" class="btn">Open APEX Simulator →</a>
+      <a href="/recommender" class="btn btn-outline">Index Recommender →</a>
+    </div>
+  </div>
+
+  <div class="hero-visual fade-up-2">
+    <div style="font-family:var(--mono);font-size:8px;color:var(--t3);margin-bottom:14px;letter-spacing:.1em;text-transform:uppercase">
+      Live market snapshot
+    </div>
+    <div class="terminal-line"><span class="prompt">›</span><span style="color:var(--t2);min-width:160px">S&P 500 CAPE</span><span class="val">~32</span></div>
+    <div class="terminal-line"><span class="prompt">›</span><span style="color:var(--t2);min-width:160px">MSCI World ex-US CAPE</span><span class="pos">17</span></div>
+    <div class="terminal-line"><span class="prompt">›</span><span style="color:var(--t2);min-width:160px">MSCI EM CAPE</span><span class="pos">14</span></div>
+    <div class="terminal-line"><span class="prompt">›</span><span style="color:var(--t2);min-width:160px">STOXX 600 CAPE</span><span class="pos">15</span></div>
+    <div style="height:1px;background:var(--border);margin:12px 0"></div>
+    <div class="terminal-line"><span class="prompt">›</span><span style="color:var(--t2);min-width:160px">S&P 500 fwd real ret.</span><span class="neg">~2–3%/yr</span></div>
+    <div class="terminal-line"><span class="prompt">›</span><span style="color:var(--t2);min-width:160px">MSCI Europe fwd ret.</span><span class="pos">~8%/yr</span></div>
+    <div class="terminal-line"><span class="prompt">›</span><span style="color:var(--t2);min-width:160px">MSCI EM fwd ret.</span><span class="pos">~9–10%/yr</span></div>
+    <div style="height:1px;background:var(--border);margin:12px 0"></div>
+    <div style="font-family:var(--mono);font-size:8px;color:var(--t3)">
+      CAPE data via FRED API · Updated daily
+    </div>
+  </div>
+</div>
+
+<!-- ── TOOLS ── -->
+<div class="tools-section">
+  <div class="sec" style="margin-bottom:1.25rem">Available tools</div>
+
+  <div style="display:flex;flex-direction:column;gap:10px">
+
+    <a href="/apex" class="tool-card">
+      <div>
+        <div class="tool-name">APEX Portfolio Simulator</div>
+        <div class="tool-desc">
+          10,000-path block bootstrap simulation with CAPE-adjusted drift.
+          Preserves real crash sequences and fat tails from 97 years of S&P 500 history.
+          Includes target probability analysis and required contribution solver.
+        </div>
+        <div class="tool-tags">
+          <span class="tool-tag">Block Bootstrap</span>
+          <span class="tool-tag">CAPE-Adjusted</span>
+          <span class="tool-tag">10,000 Paths</span>
+          <span class="tool-tag">Fat Tails</span>
+          <span class="tool-tag">Inverse Solver</span>
+        </div>
+      </div>
+      <div>
+        <div class="tool-num">01</div>
+        <div class="tool-arrow">→</div>
+      </div>
+    </a>
+
+    <a href="/recommender" class="tool-card">
+      <div>
+        <div class="tool-name">Index Recommender</div>
+        <div class="tool-desc">
+          Systematic scoring of 10 major indices across valuation, volatility fit,
+          diversification benefit, tax wrapper compatibility, and factor quality.
+          CAPE data live from FRED. Tailored to your profile, horizon, and existing holdings.
+        </div>
+        <div class="tool-tags">
+          <span class="tool-tag">Live CAPE</span>
+          <span class="tool-tag">5-Factor Scoring</span>
+          <span class="tool-tag">PEA-aware</span>
+          <span class="tool-tag">10 Indices</span>
+          <span class="tool-tag">Transparent Weights</span>
+        </div>
+      </div>
+      <div>
+        <div class="tool-num">02</div>
+        <div class="tool-arrow">→</div>
+      </div>
+    </a>
+
+  </div>
+</div>
+
+<!-- ── PRINCIPLES ── -->
+<div class="principles">
+  <div class="sec" style="margin-bottom:1.25rem">Design principles</div>
+  <div class="pr-grid">
+    <div class="pr-card">
+      <div class="pr-icon">⊡</div>
+      <div class="pr-title">Transparent assumptions</div>
+      <div class="pr-text">Every input, weight, and formula is visible. No black boxes. You should understand why the tool says what it says.</div>
+    </div>
+    <div class="pr-card">
+      <div class="pr-icon">◎</div>
+      <div class="pr-title">Valuation-grounded</div>
+      <div class="pr-text">Returns are derived from current CAPE ratios, not naive historical averages. At CAPE 32, the next decade looks different from CAPE 15.</div>
+    </div>
+    <div class="pr-card">
+      <div class="pr-icon">△</div>
+      <div class="pr-title">Honest about uncertainty</div>
+      <div class="pr-text">Outputs are probability distributions, not predictions. The tool shows you the range of outcomes, not a comfortable single number.</div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

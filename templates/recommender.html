@@ -1,0 +1,534 @@
+{% extends "base.html" %}
+{% block title %}Index Recommender — Praveen's Financial Tools{% endblock %}
+
+{% block head_extra %}
+<style>
+.rec-layout {
+  display: grid; grid-template-columns: 310px 1fr; gap: 0;
+  min-height: calc(100vh - 58px);
+}
+.rec-sidebar {
+  border-right: 0.5px solid var(--border);
+  padding: 1.5rem; background: var(--bg1); overflow-y: auto;
+}
+.rec-main { padding: 1.5rem 2rem 3rem; overflow-y: auto; }
+
+.result-card {
+  background: var(--bg1); border: 0.5px solid var(--border);
+  border-radius: var(--r); padding: 1.25rem 1.5rem; margin-bottom: 10px;
+  position: relative; transition: border-color .2s;
+}
+.result-card:hover { border-color: var(--border2); }
+.rank-badge {
+  position: absolute; top: -1px; left: 14px;
+  font-family: var(--mono); font-size: 8px; color: var(--bg);
+  background: var(--t1); padding: 2px 8px; border-radius: 0 0 4px 4px;
+  letter-spacing: .06em; text-transform: uppercase;
+}
+.score-ring {
+  width: 52px; height: 52px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 18px; font-weight: 500;
+  border: 2px solid; flex-shrink: 0;
+}
+.bar-wrap { height: 3px; background: var(--bg3); border-radius: 2px; overflow: hidden; margin: 8px 0; }
+.bar-fill { height: 100%; border-radius: 2px; transition: width .6s ease; }
+
+.bk-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 6px; margin-top: 10px; }
+.bk-item { background: var(--bg2); border-radius: var(--rs); padding: 7px 8px; }
+.bk-l { font-family: var(--mono); font-size: 7px; color: var(--t3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+.bk-b { height: 3px; background: var(--bg3); border-radius: 2px; overflow: hidden; margin-bottom: 3px; }
+.bk-v { font-family: var(--mono); font-size: 9px; color: var(--t2); }
+
+.risk-tag { font-family:var(--mono); font-size:8px; padding:2px 7px; border-radius:2px;
+  border:0.5px solid var(--border); color:var(--t3); display:inline-block; margin:2px; }
+.risk-tag.high { border-color:rgba(239,68,68,.4); color:var(--red2); background:rgba(239,68,68,.05); }
+.risk-tag.med  { border-color:rgba(245,158,11,.4); color:var(--amber2); background:rgba(245,158,11,.05); }
+.risk-tag.low  { border-color:rgba(34,197,94,.4);  color:var(--green2); background:rgba(34,197,94,.05); }
+
+.verdict {
+  border: 0.5px solid rgba(202,138,4,.3); border-left: 2px solid var(--gold2);
+  background: rgba(202,138,4,.05); border-radius: var(--r);
+  padding: 1rem 1.25rem; margin-bottom: 1rem;
+}
+.verdict-title { font-family: var(--mono); font-size: 9px; color: var(--gold2);
+  text-transform: uppercase; letter-spacing: .09em; margin-bottom: 7px; }
+
+.placeholder { text-align:center; padding:5rem 2rem; color:var(--t3);
+  font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; }
+
+.cape-indicator { display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:9px; }
+.cape-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+
+@media(max-width:720px) {
+  .rec-layout { grid-template-columns:1fr; }
+  .rec-sidebar { border-right:none; border-bottom:0.5px solid var(--border); }
+  .bk-grid { grid-template-columns:repeat(3,1fr); }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Page header -->
+<div style="padding:1.5rem 2rem .75rem;border-bottom:0.5px solid var(--border);background:var(--bg1)">
+  <div style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <div>
+      <div class="page-title">Index <span>Recommender</span></div>
+      <div class="page-subtitle">5-Factor Systematic Scoring · {{ cape_data|length }} Indices · Live CAPE via FRED</div>
+    </div>
+    <div>
+      {% if meta.sp500_live %}
+      <div class="live-badge"><span class="live-dot"></span>S&P 500 CAPE live · Fetched {{ meta.fetched_at[:10] }}</div>
+      {% else %}
+      <div class="stale-badge">CAPE estimates · Add FRED key for live S&P 500</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="rec-layout">
+
+<!-- ══════ SIDEBAR ══════ -->
+<div class="rec-sidebar">
+
+  <!-- Current CAPE data from server -->
+  <div class="sec">Live CAPE data</div>
+  <div style="margin-bottom:1rem">
+    {% for idx_id, d in cape_data.items() %}
+    {% if idx_id != '_meta' %}
+    <div class="cape-indicator" style="margin-bottom:5px">
+      <div class="cape-dot" style="background:{% if d.cape <= 18 %}#22c55e{% elif d.cape <= 28 %}#f59e0b{% else %}#ef4444{% endif %}"></div>
+      <span style="color:var(--t3);min-width:130px;font-size:8px">{{ idx_id.replace('-',' ').upper()[:18] }}</span>
+      <span style="color:var(--t1)">{{ d.cape }}</span>
+      {% if d.live %}<span style="color:var(--green2);font-size:7px">LIVE</span>{% endif %}
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+
+  <div class="sec">Your profile</div>
+
+  <div style="margin-bottom:12px">
+    <label class="fl">Investment horizon</label>
+    <div style="display:flex;align-items:center;gap:8px">
+      <input type="range" id="p-horizon" min="3" max="40" step="1" value="15" style="flex:1"/>
+      <span id="p-horizon-lbl" style="font-family:var(--mono);font-size:12px;color:var(--t1);min-width:42px">15 yrs</span>
+    </div>
+  </div>
+
+  <div style="margin-bottom:12px">
+    <label class="fl">Monthly contribution (€)</label>
+    <input type="number" id="p-contrib" value="1000" min="0" step="100"/>
+  </div>
+
+  <div style="margin-bottom:12px">
+    <label class="fl">Current portfolio (€)</label>
+    <input type="number" id="p-portfolio" value="50000" min="0" step="5000"/>
+  </div>
+
+  <div style="margin-bottom:12px">
+    <label class="fl">Tax wrapper</label>
+    <select id="p-wrapper">
+      <option value="PEA">PEA (France — European ETFs)</option>
+      <option value="AV">Assurance Vie (France)</option>
+      <option value="CTO">Compte Titres (France)</option>
+      <option value="ISA">ISA (UK)</option>
+      <option value="FREE">No restriction</option>
+    </select>
+  </div>
+
+  <div class="sec" style="margin-top:14px">Risk profile</div>
+
+  <div style="margin-bottom:12px">
+    <label class="fl">Max acceptable drawdown</label>
+    <div style="display:flex;align-items:center;gap:8px">
+      <input type="range" id="p-drawdown" min="10" max="60" step="5" value="35" style="flex:1"/>
+      <span id="p-dd-lbl" style="font-family:var(--mono);font-size:12px;color:var(--t1);min-width:36px">−35%</span>
+    </div>
+    <div style="font-size:9px;color:var(--t3);font-family:var(--mono);margin-top:3px">What % drop would force you to change plans</div>
+  </div>
+
+  <div style="margin-bottom:12px">
+    <label class="fl">If portfolio drops 40% you would</label>
+    <select id="p-reaction">
+      <option value="buy">Buy more — opportunity</option>
+      <option value="hold">Hold — stay the course</option>
+      <option value="worry">Worry but hold</option>
+      <option value="sell">Reduce exposure</option>
+    </select>
+  </div>
+
+  <div style="margin-bottom:12px">
+    <label class="fl">Income stability</label>
+    <select id="p-income">
+      <option value="stable">Very stable (civil servant)</option>
+      <option value="moderate">Moderate (employed)</option>
+      <option value="variable">Variable (freelance)</option>
+      <option value="entrepreneur">Entrepreneur</option>
+    </select>
+  </div>
+
+  <div class="sec" style="margin-top:14px">Preferences</div>
+
+  <div style="margin-bottom:10px;display:flex;flex-direction:column;gap:6px">
+    <label class="check-item"><input type="checkbox" id="pref-us" checked/><span>US equities acceptable</span></label>
+    <label class="check-item"><input type="checkbox" id="pref-em" checked/><span>Emerging markets acceptable</span></label>
+    <label class="check-item"><input type="checkbox" id="pref-china"/><span>China exposure acceptable</span></label>
+    <label class="check-item"><input type="checkbox" id="pref-esg"/><span>ESG filter preferred</span></label>
+  </div>
+
+  <div style="margin-bottom:12px">
+    <label class="fl">Existing holdings</label>
+    <select id="p-existing">
+      <option value="none">No existing holdings</option>
+      <option value="us">Heavy US equities</option>
+      <option value="europe">Heavy European equities</option>
+      <option value="global">Global mix</option>
+      <option value="bonds">Mostly bonds / cash</option>
+    </select>
+  </div>
+
+  <div style="margin-bottom:14px">
+    <label class="fl">Number of recommendations</label>
+    <div class="tgl-grp">
+      <button class="tgl on" data-value="1" onclick="setCount(this)">Top 1</button>
+      <button class="tgl"    data-value="3" onclick="setCount(this)">Top 3</button>
+      <button class="tgl"    data-value="5" onclick="setCount(this)">Top 5</button>
+    </div>
+  </div>
+
+  <div class="prog hidden" id="rec-prog" style="margin-bottom:1rem"><div class="prog-bar" id="rec-bar"></div></div>
+  <button class="btn btn-full" id="rec-btn" onclick="runRec()">▶ Generate Recommendation</button>
+
+</div>
+
+<!-- ══════ MAIN — RESULTS ══════ -->
+<div class="rec-main">
+  <div id="rec-placeholder" class="placeholder">Complete your profile and generate a recommendation →</div>
+  <div id="rec-results" class="hidden">
+    <div id="rec-verdict" class="verdict hidden">
+      <div class="verdict-title">◈ Editorial verdict</div>
+      <div id="verdict-text" style="font-size:11px;color:var(--t2);line-height:1.8"></div>
+    </div>
+    <div id="rec-cards"></div>
+    <hr/>
+    <div class="sec" style="margin-bottom:10px">All indices evaluated</div>
+    <div style="overflow-x:auto;margin-bottom:1.5rem">
+      <table class="tbl" id="rec-table">
+        <thead><tr>
+          <th>Index</th><th>Score</th><th>CAPE</th><th>Fwd Real Ret</th>
+          <th>Vol</th><th>Max DD</th><th>Dividend</th><th>PEA</th><th>EM</th>
+        </tr></thead>
+        <tbody id="rec-tbody"></tbody>
+      </table>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="clbl">CAPE vs implied forward return</div>
+        <div class="cwrap" style="height:200px"><canvas id="ch-scatter"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="clbl">All scores ranked</div>
+        <div class="cwrap" style="height:200px"><canvas id="ch-scores"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ── Index database (CAPE values injected from server) ─────────────────────
+const CAPE_DATA = {{ cape_data | tojson }};
+
+const INDICES = [
+  { id:'msci-world-exus', name:'MSCI World ex-USA',        region:'Developed ex-US',
+    tickers:'IWDP · XDWD', cape:CAPE_DATA['msci-world-exus']?.cape||17,
+    fwdRealReturn:0.078, histVol:0.148, maxDD:0.575, dividend:0.030,
+    factorTilt:'value/blend', pea:true, esg:true, chinaExposure:false, emExposure:false, usExposure:false,
+    risks:[{label:'Currency risk',level:'med'},{label:'Eurozone political',level:'med'},{label:'Japan stagnation',level:'low'}]
+  },
+  { id:'msci-em', name:'MSCI Emerging Markets',            region:'Emerging Markets',
+    tickers:'IEMA · EIMI', cape:CAPE_DATA['msci-em']?.cape||14,
+    fwdRealReturn:0.095, histVol:0.215, maxDD:0.655, dividend:0.028,
+    factorTilt:'value', pea:false, esg:false, chinaExposure:true, emExposure:true, usExposure:false,
+    risks:[{label:'China geopolitical',level:'high'},{label:'Currency volatility',level:'high'},{label:'Governance risk',level:'high'}]
+  },
+  { id:'msci-europe', name:'MSCI Europe',                  region:'Developed Europe',
+    tickers:'IMEU · EXSA', cape:CAPE_DATA['msci-europe']?.cape||16,
+    fwdRealReturn:0.082, histVol:0.158, maxDD:0.560, dividend:0.035,
+    factorTilt:'value/dividend', pea:true, esg:true, chinaExposure:false, emExposure:false, usExposure:false,
+    risks:[{label:'Eurozone fragmentation',level:'med'},{label:'Energy dependency',level:'med'}]
+  },
+  { id:'sp500', name:'S&P 500',                            region:'United States',
+    tickers:'CSPX · VUSA', cape:CAPE_DATA['sp500']?.cape||32,
+    fwdRealReturn:0.025, histVol:0.155, maxDD:0.565, dividend:0.013,
+    factorTilt:'growth/quality', pea:false, esg:false, chinaExposure:false, emExposure:false, usExposure:true,
+    risks:[{label:'CAPE elevated',level:'high'},{label:'Tech concentration 32%',level:'high'},{label:'Mean reversion risk',level:'high'}]
+  },
+  { id:'msci-acwi', name:'MSCI All Country World',         region:'Global',
+    tickers:'SSAC · VWRL', cape:CAPE_DATA['msci-acwi']?.cape||27,
+    fwdRealReturn:0.045, histVol:0.148, maxDD:0.545, dividend:0.020,
+    factorTilt:'blend', pea:false, esg:false, chinaExposure:true, emExposure:true, usExposure:true,
+    risks:[{label:'US overweight ~65%',level:'med'},{label:'China ~4%',level:'low'}]
+  },
+  { id:'msci-japan', name:'MSCI Japan',                    region:'Japan',
+    tickers:'IJPA · VJPN', cape:CAPE_DATA['msci-japan']?.cape||19,
+    fwdRealReturn:0.068, histVol:0.175, maxDD:0.590, dividend:0.022,
+    factorTilt:'value/reform', pea:false, esg:false, chinaExposure:false, emExposure:false, usExposure:false,
+    risks:[{label:'JPY volatility',level:'high'},{label:'BoJ normalisation',level:'med'},{label:'Demographic headwinds',level:'med'}]
+  },
+  { id:'msci-em-exchina', name:'MSCI EM ex-China',         region:'EM ex-China',
+    tickers:'EMXC', cape:CAPE_DATA['msci-em-exchina']?.cape||13,
+    fwdRealReturn:0.102, histVol:0.200, maxDD:0.630, dividend:0.026,
+    factorTilt:'value/growth', pea:false, esg:false, chinaExposure:false, emExposure:true, usExposure:false,
+    risks:[{label:'Taiwan geopolitical',level:'high'},{label:'Currency volatility',level:'high'}]
+  },
+  { id:'msci-world-smallcap', name:'MSCI World Small Cap', region:'Global Small Cap',
+    tickers:'IUSN · WSML', cape:CAPE_DATA['msci-world-smallcap']?.cape||20,
+    fwdRealReturn:0.072, histVol:0.198, maxDD:0.600, dividend:0.018,
+    factorTilt:'size/value', pea:false, esg:false, chinaExposure:false, emExposure:false, usExposure:true,
+    risks:[{label:'Higher volatility',level:'med'},{label:'Economic cycle sensitivity',level:'high'}]
+  },
+  { id:'stoxx600', name:'STOXX Europe 600',                region:'Broad Europe',
+    tickers:'EXSA · MEUD', cape:CAPE_DATA['stoxx600']?.cape||15,
+    fwdRealReturn:0.088, histVol:0.162, maxDD:0.555, dividend:0.036,
+    factorTilt:'value/dividend', pea:true, esg:true, chinaExposure:false, emExposure:false, usExposure:false,
+    risks:[{label:'Eurozone recession',level:'med'},{label:'Energy imports',level:'med'}]
+  },
+  { id:'msci-india', name:'MSCI India',                    region:'India',
+    tickers:'NDIA · IIND', cape:CAPE_DATA['msci-india']?.cape||32,
+    fwdRealReturn:0.055, histVol:0.225, maxDD:0.640, dividend:0.010,
+    factorTilt:'growth', pea:false, esg:false, chinaExposure:false, emExposure:true, usExposure:false,
+    risks:[{label:'Elevated CAPE for EM',level:'high'},{label:'INR currency',level:'med'}]
+  },
+];
+
+// ── Scoring weights ──────────────────────────────────────────────────────
+const W = { valuation:.30, volatilityFit:.20, diversification:.20, wrapperFit:.15, factorQuality:.15 };
+
+// ── State ────────────────────────────────────────────────────────────────
+let recCount = 1;
+
+// ── UI wiring ────────────────────────────────────────────────────────────
+document.getElementById('p-horizon').addEventListener('input',function(){
+  document.getElementById('p-horizon-lbl').textContent=this.value+' yrs';
+});
+document.getElementById('p-drawdown').addEventListener('input',function(){
+  document.getElementById('p-dd-lbl').textContent='−'+this.value+'%';
+});
+function setCount(el){
+  document.querySelectorAll('[data-value="1"],[data-value="3"],[data-value="5"]').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on'); recCount=parseInt(el.dataset.value);
+}
+
+// ── Score engine ─────────────────────────────────────────────────────────
+function scoreIndex(idx, p){
+  const retMin=0.005,retMax=0.110;
+  const valuation=clamp((idx.fwdRealReturn-retMin)/(retMax-retMin),0,1)*100;
+  const horizonFactor=clamp(p.horizon/30,0.3,1.0);
+  const ddTol=p.maxDrawdown/100;
+  const ddPenalty=idx.maxDD>ddTol*1.3?Math.max(0,1-(idx.maxDD-ddTol*1.3)/0.3):1;
+  const volTarget=0.10+horizonFactor*0.12;
+  const volFit=1-clamp(Math.abs(idx.histVol-volTarget)/0.15,0,1);
+  const volatilityFit=clamp(volFit*ddPenalty,0,1)*100;
+  let corrP=0;
+  if(p.existing==='us')      corrP=idx.correlation?.us*0.7||0.4;
+  if(p.existing==='europe')  corrP=idx.correlation?.eu*0.7||0.3;
+  if(p.existing==='global')  corrP=0.25;
+  if(p.existing==='bonds')   corrP=0.05;
+  const diversification=clamp((1-corrP)*100,20,100);
+  let wrapperFit=p.wrapper==='PEA'?(idx.pea?100:5):p.wrapper==='AV'?80:90;
+  let factorQuality=60;
+  if(idx.factorTilt.includes('value'))    factorQuality+=20;
+  if(idx.factorTilt.includes('dividend')&&p.style==='dividend') factorQuality+=15;
+  if(idx.factorTilt.includes('growth')&&idx.cape>30) factorQuality-=25;
+  if(idx.factorTilt.includes('reform'))   factorQuality+=10;
+  if(idx.factorTilt.includes('size'))     factorQuality+=8;
+  factorQuality=clamp(factorQuality,10,100);
+  let hard=1;
+  if(!p.allowUS&&idx.usExposure)       hard=0;
+  if(!p.allowEM&&idx.emExposure)       hard=0;
+  if(!p.allowChina&&idx.chinaExposure) hard*=0.2;
+  if(p.esg&&!idx.esg)                  hard*=0.6;
+  const total=clamp(Math.round(
+    (valuation*W.valuation+volatilityFit*W.volatilityFit+
+     diversification*W.diversification+wrapperFit*W.wrapperFit+
+     factorQuality*W.factorQuality)*hard
+  ),0,99);
+  return {total,valuation,volatilityFit,diversification,wrapperFit,factorQuality};
+}
+
+// ── Run ──────────────────────────────────────────────────────────────────
+function runRec(){
+  const btn=document.getElementById('rec-btn');
+  const prog=document.getElementById('rec-prog');
+  const bar=document.getElementById('rec-bar');
+  btn.disabled=true; btn.textContent='Analysing…';
+  prog.classList.remove('hidden'); bar.style.width='40%';
+
+  setTimeout(()=>{
+    const p={
+      horizon:    parseInt(document.getElementById('p-horizon').value),
+      contrib:    parseFloat(document.getElementById('p-contrib').value)||0,
+      portfolio:  parseFloat(document.getElementById('p-portfolio').value)||0,
+      wrapper:    document.getElementById('p-wrapper').value,
+      maxDrawdown:parseInt(document.getElementById('p-drawdown').value),
+      reaction:   document.getElementById('p-reaction').value,
+      income:     document.getElementById('p-income').value,
+      allowUS:    document.getElementById('pref-us').checked,
+      allowEM:    document.getElementById('pref-em').checked,
+      allowChina: document.getElementById('pref-china').checked,
+      esg:        document.getElementById('pref-esg').checked,
+      existing:   document.getElementById('p-existing').value,
+      count:      recCount,
+    };
+
+    bar.style.width='75%';
+    const scored=INDICES.map(idx=>({...idx,sc:scoreIndex(idx,p)}))
+                        .sort((a,b)=>b.sc.total-a.sc.total);
+    bar.style.width='95%';
+
+    renderRec(scored,p);
+
+    setTimeout(()=>{
+      prog.classList.add('hidden');
+      btn.disabled=false; btn.textContent='▶ Generate Recommendation';
+    },200);
+  },60);
+}
+
+// ── Render ────────────────────────────────────────────────────────────────
+function renderRec(scored,p){
+  document.getElementById('rec-placeholder').classList.add('hidden');
+  document.getElementById('rec-results').classList.remove('hidden');
+
+  const top=scored.slice(0,p.count);
+  const ordinals=['1st','2nd','3rd','4th','5th'];
+  const bkLabels={valuation:'Valuation',volatilityFit:'Vol fit',
+    diversification:'Diversif.',wrapperFit:'Wrapper',factorQuality:'Factor'};
+
+  // Verdict
+  const winner=top[0];
+  document.getElementById('rec-verdict').classList.remove('hidden');
+  document.getElementById('verdict-text').innerHTML=buildVerdict(winner,top,p);
+
+  // Cards
+  let cardsHTML='';
+  top.forEach((idx,i)=>{
+    const sc=idx.sc;
+    const c=scoreColor(sc.total);
+    const bg=sc.total>=72?'#22c55e':sc.total>=50?'#f59e0b':'#ef4444';
+    cardsHTML+=`
+      <div class="result-card fade-up" style="animation-delay:${i*0.07}s">
+        <div class="rank-badge">${ordinals[i]}</div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin:8px 0 8px">
+          <div>
+            <div style="font-family:var(--display);font-size:16px;font-weight:700;color:var(--t1)">${idx.name}</div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--t3);margin-top:2px">${idx.tickers} · ${idx.region}</div>
+          </div>
+          <div class="score-ring" style="color:${c};border-color:${c}">${sc.total}</div>
+        </div>
+        <div class="bar-wrap"><div class="bar-fill" style="width:${sc.total}%;background:${bg}"></div></div>
+        <div class="g4" style="margin-bottom:8px">
+          <div class="met" style="padding:7px 9px">
+            <div class="ml">CAPE</div>
+            <div class="mv ${idx.cape<=18?'pos':idx.cape>=35?'neg':''}" style="font-size:16px">${idx.cape}</div>
+          </div>
+          <div class="met" style="padding:7px 9px">
+            <div class="ml">Fwd Real Ret</div>
+            <div class="mv ${idx.fwdRealReturn>=0.06?'pos':idx.fwdRealReturn<=0.03?'neg':'wrn'}" style="font-size:14px">${fmtPct(idx.fwdRealReturn)}/yr</div>
+          </div>
+          <div class="met" style="padding:7px 9px">
+            <div class="ml">Volatility</div>
+            <div class="mv" style="font-size:14px">${fmtPct(idx.histVol)}</div>
+          </div>
+          <div class="met" style="padding:7px 9px">
+            <div class="ml">Dividend</div>
+            <div class="mv" style="font-size:14px">${fmtPct(idx.dividend)}</div>
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--t2);line-height:1.7;margin-bottom:8px">${buildRationale(idx,p)}</div>
+        <div style="margin-bottom:8px">${idx.risks.map(r=>`<span class="risk-tag ${r.level}">${r.label}</span>`).join('')}${!idx.pea&&p.wrapper==='PEA'?'<span class="risk-tag high">Not PEA-eligible</span>':''}</div>
+        <div class="bk-grid">
+          ${Object.entries({valuation:sc.valuation,volatilityFit:sc.volatilityFit,diversification:sc.diversification,wrapperFit:sc.wrapperFit,factorQuality:sc.factorQuality}).map(([k,v])=>`
+            <div class="bk-item">
+              <div class="bk-l">${bkLabels[k]}</div>
+              <div class="bk-b"><div style="height:100%;border-radius:2px;width:${v}%;background:${v>=70?'#22c55e':v>=45?'#f59e0b':'#ef4444'}"></div></div>
+              <div class="bk-v">${Math.round(v)}</div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+  });
+  document.getElementById('rec-cards').innerHTML=cardsHTML;
+
+  // Table
+  const rows=scored.map((idx,i)=>`<tr>
+    <td style="${i===0?'color:var(--green2);font-weight:500':''}">${idx.name}</td>
+    <td style="color:${scoreColor(idx.sc.total)};font-weight:500">${idx.sc.total}</td>
+    <td style="${idx.cape<=18?'color:var(--green2)':idx.cape>=35?'color:var(--red2)':''}">${idx.cape}</td>
+    <td style="${idx.fwdRealReturn>=0.07?'color:var(--green2)':idx.fwdRealReturn<=0.03?'color:var(--red2)':''}">${fmtPct(idx.fwdRealReturn)}</td>
+    <td>${fmtPct(idx.histVol)}</td>
+    <td>${fmtPct(idx.maxDD)}</td>
+    <td>${fmtPct(idx.dividend)}</td>
+    <td>${idx.pea?'✓':'—'}</td>
+    <td>${idx.emExposure?'✓':'—'}</td>
+  </tr>`).join('');
+  document.getElementById('rec-tbody').innerHTML=rows;
+
+  setTimeout(()=>drawRecCharts(scored,top),100);
+}
+
+function buildVerdict(winner,top,p){
+  let v=`Given your ${p.horizon}-year horizon and ${p.wrapper} wrapper, <strong>${winner.name}</strong> `;
+  v+=winner.cape<=18
+    ?`scores highest — cheap valuation at CAPE ${winner.cape} with ${fmtPct(winner.fwdRealReturn)} implied real return, well above the market average.`
+    :`emerges as the best fit for your constraints, though CAPE ${winner.cape} limits the forward return to ~${fmtPct(winner.fwdRealReturn)} real annually.`;
+  if(p.wrapper==='PEA'&&!winner.pea) v+=' Note: this index is not PEA-eligible — access via Assurance Vie or CTO instead.';
+  if(p.existing==='us'&&!winner.usExposure) v+=' This adds meaningful geographic diversification away from your existing US concentration.';
+  return v;
+}
+
+function buildRationale(idx,p){
+  const parts=[];
+  if(idx.cape<=18) parts.push(`At CAPE ${idx.cape}, this index sits in historically cheap territory — the valuation level where long-run returns have been strongest.`);
+  else if(idx.cape<=28) parts.push(`CAPE ${idx.cape} is near fair value, implying a reasonable ${fmtPct(idx.fwdRealReturn)} real return annually.`);
+  else parts.push(`CAPE ${idx.cape} is elevated, constraining the forward return to ~${fmtPct(idx.fwdRealReturn)}. The investment case rests on factors beyond current valuation.`);
+  if(p.wrapper==='PEA'&&idx.pea) parts.push(`PEA-compatible — retains favourable French tax treatment.`);
+  if(p.existing==='us'&&!idx.usExposure) parts.push(`Adds genuine geographic diversification from your existing US holdings.`);
+  if(idx.id==='msci-world-exus') parts.push(`The valuation gap between US and international developed markets is near its widest in history.`);
+  if(idx.id==='msci-em-exchina') parts.push(`Removes China's ~30% EM weight while capturing EM growth at historically cheap valuations.`);
+  if(idx.id==='msci-japan') parts.push(`TSE corporate governance reform is forcing capital return — a structural re-rating catalyst.`);
+  return parts.join(' ');
+}
+
+function drawRecCharts(all,top){
+  const topIds=new Set(top.map(x=>x.id));
+  killChart('scatter');
+  _charts['scatter']=new Chart(document.getElementById('ch-scatter'),{
+    type:'scatter',
+    data:{datasets:[
+      {data:all.filter(x=>!topIds.has(x.id)).map(x=>({x:x.cape,y:x.fwdRealReturn*100,label:x.name.split(' ').pop()})),backgroundColor:'rgba(128,128,160,0.5)',pointRadius:5},
+      {data:top.map(x=>({x:x.cape,y:x.fwdRealReturn*100,label:x.name.split(' ').pop()})),backgroundColor:'rgba(34,197,94,0.85)',pointRadius:8,pointStyle:'rectRot'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw.label}: CAPE ${ctx.raw.x} → ${ctx.raw.y.toFixed(1)}%`}}},
+      scales:{x:{title:{display:true,text:'CAPE',color:TC.color,font:TC.font},ticks:TC,grid:{color:GC}},
+              y:{title:{display:true,text:'Fwd Ret %',color:TC.color,font:TC.font},ticks:{...TC,callback:v=>v+'%'},grid:{color:GC}}}}
+  });
+  const sorted=[...all].sort((a,b)=>b.sc.total-a.sc.total);
+  killChart('scores');
+  _charts['scores']=new Chart(document.getElementById('ch-scores'),{
+    type:'bar',
+    data:{labels:sorted.map(x=>x.name.replace('MSCI ','').replace('STOXX ','')),
+      datasets:[{data:sorted.map(x=>x.sc.total),
+        backgroundColor:sorted.map(x=>x.sc.total>=72?'rgba(34,197,94,0.6)':x.sc.total>=50?'rgba(245,158,11,0.55)':'rgba(239,68,68,0.5)'),
+        borderWidth:0,borderRadius:2}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.raw+' / 99'}}},
+      scales:{x:{min:0,max:100,ticks:TC,grid:{color:GC}},y:{ticks:{...TC,font:{...TC.font,size:8}},grid:{display:false}}}}
+  });
+}
+</script>
+{% endblock %}

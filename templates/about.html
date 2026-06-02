@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Methodology — Praveen's Financial Tools{% endblock %}
+
+{% block content %}
+<div class="page" style="max-width:760px">
+
+  <div class="page-hdr">
+    <div class="page-title">Method<span>ology</span></div>
+    <div class="page-subtitle">How the algorithms work · Assumptions · Limitations</div>
+  </div>
+
+  <div class="sec">APEX Simulator — Core Algorithm</div>
+
+  <div class="card" style="margin-bottom:10px">
+    <div style="font-family:var(--mono);font-size:11px;color:var(--t2);line-height:2;margin-bottom:1rem">
+      <strong style="color:var(--t1)">Block Bootstrap with CAPE-Adjusted Drift</strong>
+    </div>
+    <div class="info">
+      <strong>Step 1 — CAPE-adjusted expected return.</strong>
+      Forward return is derived from the current Shiller CAPE ratio via an empirical lookup table
+      calibrated to Campbell &amp; Shiller (1988) and Asness (2012) research.
+      Earnings yield (1/CAPE) is the strongest single predictor of 10-year real returns in the academic literature.
+      At CAPE 32, implied real return is approximately 3–4% annually. At CAPE 15, approximately 10%.
+    </div>
+    <div class="info">
+      <strong>Step 2 — Block resampling.</strong>
+      Each simulated path draws consecutive blocks of actual historical S&amp;P 500 annual returns
+      (1928–2024, 97 observations) with replacement. Default block size is 4 years,
+      following Politis &amp; Romano (1994) stationary block bootstrap.
+      This preserves serial correlation — bear markets and crash sequences arrive as intact units,
+      not isolated random draws.
+    </div>
+    <div class="info">
+      <strong>Step 3 — Drift correction.</strong>
+      Each resampled return is scaled by the ratio of CAPE-implied return to historical mean return,
+      shifting the distribution centre while preserving its shape.
+      Fat tails (1931: −43%, 2008: −38%) remain in the resampled pool and appear naturally.
+      No distributional assumption is imposed.
+    </div>
+    <div class="info" style="margin-bottom:0">
+      <strong>Why this is better than Monte Carlo.</strong>
+      Monte Carlo assumes returns are log-normally distributed and independently drawn each year.
+      Real returns have fat tails (extreme events more frequent than log-normal predicts)
+      and serial correlation (bad years cluster). Block bootstrap captures both without parametric assumptions.
+      The CAPE adjustment grounds return expectations in current valuations rather than the historical average,
+      which at elevated valuations has systematically overstated subsequent returns.
+    </div>
+  </div>
+
+  <div class="sec" style="margin-top:1.5rem">Index Recommender — Scoring Model</div>
+
+  <div class="card" style="margin-bottom:10px">
+    <div class="info">
+      <strong>5 weighted dimensions:</strong>
+      Valuation 30% · Volatility fit 20% · Diversification 20% · Tax wrapper 15% · Factor quality 15%.
+      Weights reflect the relative importance of each factor for a long-term passive investor.
+      Valuation dominates because the entry CAPE is the strongest predictor of decade returns.
+    </div>
+    <div class="info">
+      <strong>Valuation score.</strong>
+      CAPE-implied real return normalised between the worst (S&amp;P 500 at current levels, ~2.5%)
+      and best (MSCI EM ex-China, ~10%) available in the tracked universe.
+      Higher implied return → higher score.
+    </div>
+    <div class="info">
+      <strong>Volatility fit.</strong>
+      Matches index volatility to the investor's horizon and stated maximum drawdown tolerance.
+      A 20-year horizon scores high-volatility indices better than a 5-year horizon.
+      Indices whose max drawdown exceeds tolerance × 1.3 are penalised.
+    </div>
+    <div class="info">
+      <strong>Diversification.</strong>
+      Correlation penalty based on existing holdings. An index highly correlated to what you already
+      hold adds less value. Existing US concentration → correlated indices penalised.
+    </div>
+    <div class="info">
+      <strong>Tax wrapper fit.</strong>
+      Binary for PEA: non-PEA-eligible indices score near zero.
+      Assurance Vie and CTO have minor penalties only.
+    </div>
+    <div class="info" style="margin-bottom:0">
+      <strong>Factor quality.</strong>
+      Value tilt +20, reform catalyst +10, size premium +8,
+      growth-at-high-CAPE −25 (growth indices with CAPE &gt;30 are penalised).
+      Based on Fama-French and AQR factor research.
+    </div>
+  </div>
+
+  <div class="sec" style="margin-top:1.5rem">Data Sources</div>
+
+  <div class="card" style="margin-bottom:10px">
+    <table class="tbl">
+      <thead><tr><th>Data</th><th>Source</th><th>Update freq</th><th>Live?</th></tr></thead>
+      <tbody>
+        <tr><td>S&P 500 CAPE</td><td>FRED API — Series CAPE</td><td>Monthly</td><td style="color:var(--green2)">Yes (24h cache)</td></tr>
+        <tr><td>S&P 500 annual returns</td><td>Robert Shiller / Damodaran</td><td>Annual</td><td style="color:var(--amber2)">Hardcoded 1928–2024</td></tr>
+        <tr><td>International CAPE</td><td>StarCapital / Research Affiliates</td><td>Monthly</td><td style="color:var(--amber2)">Manual (update quarterly)</td></tr>
+        <tr><td>Fwd return LUT</td><td>Campbell &amp; Shiller (1988)</td><td>Static</td><td style="color:var(--t3)">Research-based</td></tr>
+        <tr><td>Volatility / max DD</td><td>MSCI / Bloomberg (approximated)</td><td>Static</td><td style="color:var(--t3)">20yr rolling estimate</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="sec" style="margin-top:1.5rem">Honest Limitations</div>
+
+  <div class="card">
+    <div class="info">
+      <strong>CAPE is a 10-year predictor, not a timing tool.</strong>
+      High CAPE predicts low average returns over the subsequent decade.
+      It says nothing about when any correction happens.
+      The market was expensive in 1996 and doubled before correcting in 2000.
+    </div>
+    <div class="info">
+      <strong>Historical returns may not represent the future.</strong>
+      The dataset is US-centric (1928–2024). The US is the market that survived and dominated.
+      Bootstrapping from this data embeds US survivorship bias.
+      International diversification is partly a hedge against this.
+    </div>
+    <div class="info">
+      <strong>Block size is an estimate.</strong>
+      The optimal block size is theoretically derived but practically estimated.
+      Results are somewhat sensitive to this parameter between 2 and 7 years.
+      Sensitivity testing (run at block size 2 and 7, compare P10) is recommended.
+    </div>
+    <div class="info" style="margin-bottom:0">
+      <strong>This is not financial advice.</strong>
+      These tools are educational frameworks for structured thinking.
+      Individual circumstances — tax situation, liability structure, income stability,
+      specific investment horizon — require personalised advice from a qualified professional.
+    </div>
+  </div>
+
+</div>
+{% endblock %}

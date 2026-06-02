@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>{% block title %}Praveen's Financial Tools{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <script src="/static/app.js"></script>
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+
+<!-- ── NAVBAR ── -->
+<nav class="navbar">
+  <a class="nav-brand" href="/">
+    <span class="nav-logo">Praveen<span>.</span></span>
+    <span class="nav-divider"></span>
+    <span class="nav-tagline">Financial Tools</span>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link {% if active == 'home' %}active{% endif %}" href="/">Home</a>
+    <a class="nav-link {% if active == 'apex' %}active{% endif %}" href="/apex">
+      APEX Simulator
+    </a>
+    <a class="nav-link {% if active == 'recommender' %}active{% endif %}" href="/recommender">
+      Index Recommender
+    </a>
+    <a class="nav-link {% if active == 'about' %}active{% endif %}" href="/about">Methodology</a>
+  </div>
+</nav>
+
+<!-- ── PAGE CONTENT ── -->
+{% block content %}{% endblock %}
+
+<!-- ── FOOTER ── -->
+<footer class="footer">
+  <span>Praveen's Financial Tools · Built with FastAPI + Python</span>
+  <span>
+    Data: <a href="https://fred.stlouisfed.org/" target="_blank">FRED</a> ·
+    <a href="https://www.multpl.com/shiller-pe" target="_blank">Shiller CAPE</a> ·
+    <a href="https://www.starcapital.de" target="_blank">StarCapital</a>
+  </span>
+  <span>Not financial advice · Educational use only</span>
+</footer>
+
+</body>
+</html>
