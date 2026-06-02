@@ -5,18 +5,39 @@
 <style>
 .apex-layout {
   display: grid; grid-template-columns: 300px 1fr; gap: 0;
-  min-height: calc(100vh - 58px);
+  min-height: calc(100vh - 54px);
 }
 .apex-sidebar {
   border-right: 0.5px solid var(--border);
-  padding: 1.5rem;
+  padding: 1.25rem;
   background: var(--bg1);
   overflow-y: auto;
+  max-height: calc(100vh - 54px);
+  position: sticky; top: 54px;
 }
 .apex-main {
-  padding: 1.5rem 2rem 3rem;
+  padding: 1.25rem 1.5rem 3rem;
   overflow-y: auto;
+  min-width: 0;
 }
+@media(max-width:768px) {
+  .apex-layout { grid-template-columns: 1fr; }
+  .apex-sidebar {
+    border-right: none; border-bottom: 0.5px solid var(--border);
+    max-height: none; position: static;
+  }
+  .apex-sidebar.collapsed .sidebar-body { display: none; }
+}
+.sidebar-toggle {
+  display: none; align-items: center; justify-content: space-between;
+  cursor: pointer; padding-bottom: 10px; margin-bottom: 10px;
+  border-bottom: 0.5px solid var(--border);
+}
+.sidebar-toggle-label { font-family:var(--mono);font-size:9px;color:var(--green2);text-transform:uppercase;letter-spacing:.1em; }
+.sidebar-toggle-icon  { font-size:14px;color:var(--t3);transition:transform .2s; }
+.apex-sidebar.collapsed .sidebar-toggle-icon { transform: rotate(-90deg); }
+@media(max-width:768px) { .sidebar-toggle { display:flex; } }
+
 .apex-tabs {
   display:flex; gap:2px; background:var(--bg2);
   border-radius:var(--r); padding:3px; margin-bottom:1.5rem;
@@ -68,7 +89,12 @@
 <div class="apex-layout">
 
 <!-- ══════ SIDEBAR — INPUTS ══════ -->
-<div class="apex-sidebar">
+<div class="apex-sidebar" id="apex-sidebar">
+  <div class="sidebar-toggle" onclick="toggleApexSidebar()">
+    <span class="sidebar-toggle-label">▸ Simulation inputs</span>
+    <span class="sidebar-toggle-icon" id="apex-sidebar-icon">▾</span>
+  </div>
+  <div class="sidebar-body" id="apex-sidebar-body">
 
   <div class="cape-status">
     {% if sp500_live %}
@@ -127,10 +153,11 @@
     </div>
   </div>
 
-  <div id="prog-wrap" class="prog hidden" style="margin-bottom:1rem"><div class="prog-bar" id="prog-bar"></div></div>
+  <div class="prog hidden" id="prog-wrap" style="margin-bottom:1rem"><div class="prog-bar" id="prog-bar"></div></div>
   <button class="btn btn-full" id="run-btn" onclick="runSim()">▶ Run 10,000 Paths</button>
 
-</div>
+</div><!-- /sidebar-body -->
+</div><!-- /apex-sidebar -->
 
 <!-- ══════ MAIN — RESULTS ══════ -->
 <div class="apex-main">
@@ -262,7 +289,13 @@
      JAVASCRIPT — All simulation logic
 ══════════════════════════════════════════════ -->
 <script>
-// ── Historical S&P 500 annual returns 1928-2024 ──────────────────────────
+function toggleApexSidebar() {
+  const sb = document.getElementById('apex-sidebar');
+  const ic = document.getElementById('apex-sidebar-icon');
+  sb.classList.toggle('collapsed');
+  ic.textContent = sb.classList.contains('collapsed') ? '▸' : '▾';
+}
+
 const HIST = [
   0.4381,-0.0830,-0.2490,-0.4334,-0.0819,0.5374,-0.0135,0.4674,-0.3534,0.2938,
   0.3123,-0.0641,-0.0918,0.2134,-0.1265,-0.1081,0.2189,0.2529,0.1972,0.3581,
