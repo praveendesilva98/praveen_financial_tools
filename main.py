@@ -120,5 +120,27 @@ def health():
     return {"status": "ok", "service": "Praveen's Financial Tools"}
 
 
+@app.get("/api/debug/prices")
+def debug_prices():
+    """
+    Quick diagnostic — tries to fetch SPY 1Y and returns
+    the raw result including any error detail.
+    Hit this URL in your browser to see exactly what yfinance returns.
+    """
+    import sys
+    try:
+        import yfinance as yf
+        yf_version = yf.__version__
+    except Exception as e:
+        yf_version = f"IMPORT FAILED: {e}"
+
+    result = get_index_prices("sp500", "1Y")
+    return {
+        "python_version": sys.version,
+        "yfinance_version": yf_version,
+        "result": result,
+    }
+
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
