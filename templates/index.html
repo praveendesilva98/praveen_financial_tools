@@ -1,193 +1,321 @@
 {% extends "base.html" %}
-{% block title %}Praveen's Financial Tools — Home{% endblock %}
+{% block title %}Praveen's Financial Tools{% endblock %}
 
 {% block head_extra %}
 <style>
-.hero {
-  max-width:1080px; margin:0 auto;
-  padding:5rem 2rem 3rem;
-  display:grid; grid-template-columns:1fr 1fr; gap:4rem; align-items:center;
+.dashboard {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
 }
-.hero-text {}
-.hero-eyebrow {
-  font-family:var(--mono); font-size:9px; color:var(--green2);
-  letter-spacing:.15em; text-transform:uppercase; margin-bottom:1rem;
-  display:flex; align-items:center; gap:8px;
-}
-.hero-eyebrow::before { content:''; width:24px; height:1px; background:var(--green2); }
-.hero-title {
-  font-family:var(--display); font-size:44px; font-weight:800;
-  line-height:1.05; letter-spacing:-.03em; color:var(--t1); margin-bottom:1.25rem;
-}
-.hero-title em { color:var(--green2); font-style:normal; }
-.hero-desc { font-size:14px; color:var(--t2); line-height:1.8; margin-bottom:2rem; max-width:420px; }
-.hero-ctas { display:flex; gap:10px; flex-wrap:wrap; }
-.hero-visual {
-  background:var(--bg1); border:0.5px solid var(--border2);
-  border-radius:12px; padding:1.5rem; position:relative; overflow:hidden;
-}
-.hero-visual::before {
-  content:''; position:absolute; top:-40px; right:-40px;
-  width:200px; height:200px; border-radius:50%;
-  background:radial-gradient(circle, rgba(34,197,94,.06) 0%, transparent 70%);
-}
-.terminal-line {
-  font-family:var(--mono); font-size:10px; color:var(--t3);
-  margin-bottom:6px; display:flex; gap:8px;
-}
-.terminal-line .prompt { color:var(--green2); }
-.terminal-line .val    { color:var(--t1); }
-.terminal-line .neg    { color:var(--red2); }
-.terminal-line .pos    { color:var(--green2); }
 
-.tools-section { max-width:1080px; margin:0 auto; padding:2rem 2rem 4rem; }
-.tool-card {
-  background:var(--bg1); border:0.5px solid var(--border);
-  border-radius:12px; padding:1.75rem 2rem;
-  display:grid; grid-template-columns:1fr auto;
-  gap:1.5rem; align-items:center;
-  transition:border-color .2s, box-shadow .2s;
-  text-decoration:none;
+/* ── greeting ── */
+.greeting {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 0.5px solid var(--border);
 }
-.tool-card:hover { border-color:var(--border2); box-shadow:0 0 40px rgba(34,197,94,.04); }
-.tool-num { font-family:var(--display); font-size:48px; font-weight:800; color:var(--bg3); line-height:1; }
-.tool-name { font-family:var(--display); font-size:20px; font-weight:700; color:var(--t1); margin-bottom:6px; }
-.tool-desc { font-size:12px; color:var(--t2); line-height:1.7; max-width:500px; }
-.tool-tags { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
-.tool-tag { font-family:var(--mono); font-size:8px; padding:2px 8px; border-radius:2px;
-  border:0.5px solid var(--border); color:var(--t3); letter-spacing:.05em; text-transform:uppercase; }
-.tool-arrow { font-size:24px; color:var(--t3); }
-
-.principles { max-width:1080px; margin:0 auto; padding:0 2rem 4rem; }
-.pr-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-.pr-card { background:var(--bg2); border-radius:var(--r); padding:1.25rem; }
-.pr-icon { font-size:20px; margin-bottom:10px; }
-.pr-title { font-family:var(--display); font-size:14px; font-weight:600; color:var(--t1); margin-bottom:6px; }
-.pr-text  { font-size:11px; color:var(--t3); line-height:1.7; font-family:var(--mono); }
-
-@media(max-width:720px) {
-  .hero { grid-template-columns:1fr; gap:2rem; padding:3rem 1.5rem; }
-  .hero-title { font-size:32px; }
-  .hero-visual { display:none; }
-  .pr-grid { grid-template-columns:1fr 1fr; }
-  .tool-card { grid-template-columns:1fr; }
-  .tool-arrow { display:none; }
+.greeting-date {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--t3);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
 }
+.greeting-title {
+  font-family: var(--display);
+  font-size: clamp(22px, 5vw, 30px);
+  font-weight: 700;
+  color: var(--t1);
+  letter-spacing: -.02em;
+  line-height: 1.1;
+}
+.greeting-title span { color: var(--green2); }
+
+/* ── cape strip ── */
+.cape-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 6px;
+  margin-bottom: 1.5rem;
+}
+.cape-cell {
+  background: var(--bg1);
+  border: 0.5px solid var(--border);
+  border-radius: var(--rs);
+  padding: 9px 11px;
+  cursor: default;
+}
+.cape-cell-name {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cape-cell-value {
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1;
+}
+.cape-cell-ret {
+  font-family: var(--mono);
+  font-size: 9px;
+  margin-top: 3px;
+}
+.cape-cheap  { color: var(--green2); }
+.cape-fair   { color: var(--amber2); }
+.cape-exp    { color: var(--red2); }
+
+/* ── mini bar under each cape value ── */
+.cape-mini-bar {
+  height: 2px;
+  border-radius: 1px;
+  margin-top: 6px;
+  background: var(--bg3);
+  overflow: hidden;
+}
+.cape-mini-fill {
+  height: 100%;
+  border-radius: 1px;
+}
+
+/* ── tools grid ── */
+.tools-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 1.5rem;
+}
+@media(max-width: 520px) {
+  .tools-grid { grid-template-columns: 1fr; }
+  .cape-strip { grid-template-columns: 1fr 1fr; }
+}
+
+.tool-link {
+  display: block;
+  background: var(--bg1);
+  border: 0.5px solid var(--border);
+  border-radius: var(--r);
+  padding: 1.1rem 1.25rem;
+  text-decoration: none;
+  transition: border-color .15s, background .15s;
+  position: relative;
+  overflow: hidden;
+}
+.tool-link:hover {
+  border-color: var(--border2);
+  background: var(--bg2);
+}
+.tool-link::after {
+  content: '→';
+  position: absolute;
+  right: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  color: var(--t4);
+  transition: color .15s, right .15s;
+}
+.tool-link:hover::after {
+  color: var(--t2);
+  right: 1rem;
+}
+.tool-link-num {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--t3);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.tool-link-name {
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--t1);
+  margin-bottom: 4px;
+}
+.tool-link-desc {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--t3);
+  line-height: 1.6;
+  max-width: 240px;
+}
+
+/* ── status bar ── */
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg1);
+  border: 0.5px solid var(--border);
+  border-radius: var(--rs);
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--t3);
+}
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--green2);
+  animation: pulse 2.5s infinite;
+  flex-shrink: 0;
+}
+.status-dot.amber { background: var(--amber2); }
 </style>
 {% endblock %}
 
 {% block content %}
+<div class="dashboard">
 
-<!-- ── HERO ── -->
-<div class="hero">
-  <div class="hero-text fade-up">
-    <div class="hero-eyebrow">Personal Finance Infrastructure</div>
-    <h1 class="hero-title">
-      Honest tools<br/>for serious<br/><em>investors</em>
-    </h1>
-    <p class="hero-desc">
-      Valuation-driven portfolio simulation and index recommendation.
-      Built on block bootstrapping, CAPE-adjusted returns, and live market data —
-      not on the optimistic assumptions most tools hide behind.
-    </p>
-    <div class="hero-ctas">
-      <a href="/apex" class="btn">Open APEX Simulator →</a>
-      <a href="/recommender" class="btn btn-outline">Index Recommender →</a>
-    </div>
+  <!-- ── greeting ── -->
+  <div class="greeting">
+    <div class="greeting-date" id="today-date"></div>
+    <div class="greeting-title">Good <span id="time-of-day">morning</span>, Praveen.</div>
   </div>
 
-  <div class="hero-visual fade-up-2">
-    <div style="font-family:var(--mono);font-size:8px;color:var(--t3);margin-bottom:14px;letter-spacing:.1em;text-transform:uppercase">
-      Live market snapshot
-    </div>
-    <div class="terminal-line"><span class="prompt">›</span><span style="color:var(--t2);min-width:160px">S&P 500 CAPE</span><span class="val">~32</span></div>
-    <div class="terminal-line"><span class="prompt">›</span><span style="color:var(--t2);min-width:160px">MSCI World ex-US CAPE</span><span class="pos">17</span></div>
-    <div class="terminal-line"><span class="prompt">›</span><span style="color:var(--t2);min-width:160px">MSCI EM CAPE</span><span class="pos">14</span></div>
-    <div class="terminal-line"><span class="prompt">›</span><span style="color:var(--t2);min-width:160px">STOXX 600 CAPE</span><span class="pos">15</span></div>
-    <div style="height:1px;background:var(--border);margin:12px 0"></div>
-    <div class="terminal-line"><span class="prompt">›</span><span style="color:var(--t2);min-width:160px">S&P 500 fwd real ret.</span><span class="neg">~2–3%/yr</span></div>
-    <div class="terminal-line"><span class="prompt">›</span><span style="color:var(--t2);min-width:160px">MSCI Europe fwd ret.</span><span class="pos">~8%/yr</span></div>
-    <div class="terminal-line"><span class="prompt">›</span><span style="color:var(--t2);min-width:160px">MSCI EM fwd ret.</span><span class="pos">~9–10%/yr</span></div>
-    <div style="height:1px;background:var(--border);margin:12px 0"></div>
-    <div style="font-family:var(--mono);font-size:8px;color:var(--t3)">
-      CAPE data via FRED API · Updated daily
-    </div>
+  <!-- ── cape strip — live data from server ── -->
+  <div class="sec" style="margin-bottom:8px">Current CAPE · Implied forward real return</div>
+  <div class="cape-strip" id="cape-strip">
+    {% set cape_items = [
+      ("S&P 500",         "sp500",               cape_data),
+      ("MSCI World x-US", "msci-world-exus",      cape_data),
+      ("MSCI EM",         "msci-em",              cape_data),
+      ("MSCI Europe",     "msci-europe",          cape_data),
+      ("STOXX 600",       "stoxx600",             cape_data),
+      ("MSCI Japan",      "msci-japan",           cape_data),
+      ("MSCI EM x-China", "msci-em-exchina",      cape_data),
+      ("MSCI India",      "msci-india",           cape_data),
+    ] %}
+    {% set fwd_map = {
+      "sp500": 2.5, "msci-world-exus": 7.8, "msci-em": 9.5,
+      "msci-europe": 8.2, "stoxx600": 8.8, "msci-japan": 6.8,
+      "msci-em-exchina": 10.2, "msci-india": 5.5
+    } %}
+    {% for label, key, data in cape_items %}
+      {% set d = data.get(key, {}) %}
+      {% set cape = d.get('cape', '—') %}
+      {% set fwd  = fwd_map.get(key, 0) %}
+      {% if cape != '—' %}
+        {% set pct = ((cape - 8) / (50 - 8) * 100) | round %}
+        {% if cape <= 18 %}
+          {% set cls = 'cape-cheap' %}
+          {% set bar_col = '#22c55e' %}
+        {% elif cape <= 28 %}
+          {% set cls = 'cape-fair' %}
+          {% set bar_col = '#f59e0b' %}
+        {% else %}
+          {% set cls = 'cape-exp' %}
+          {% set bar_col = '#ef4444' %}
+        {% endif %}
+      {% else %}
+        {% set pct = 0 %}
+        {% set cls = '' %}
+        {% set bar_col = '#303048' %}
+      {% endif %}
+      <div class="cape-cell">
+        <div class="cape-cell-name">{{ label }}</div>
+        <div class="cape-cell-value {{ cls }}">{{ cape }}</div>
+        <div class="cape-cell-ret" style="color:{{ bar_col }}">
+          ~{{ fwd }}% real/yr
+        </div>
+        <div class="cape-mini-bar">
+          <div class="cape-mini-fill" style="width:{{ pct }}%;background:{{ bar_col }}"></div>
+        </div>
+      </div>
+    {% endfor %}
   </div>
-</div>
 
-<!-- ── TOOLS ── -->
-<div class="tools-section">
-  <div class="sec" style="margin-bottom:1.25rem">Available tools</div>
+  <!-- ── tools ── -->
+  <div class="sec" style="margin-bottom:8px">Tools</div>
+  <div class="tools-grid">
 
-  <div style="display:flex;flex-direction:column;gap:10px">
-
-    <a href="/apex" class="tool-card">
-      <div>
-        <div class="tool-name">APEX Portfolio Simulator</div>
-        <div class="tool-desc">
-          10,000-path block bootstrap simulation with CAPE-adjusted drift.
-          Preserves real crash sequences and fat tails from 97 years of S&P 500 history.
-          Includes target probability analysis and required contribution solver.
-        </div>
-        <div class="tool-tags">
-          <span class="tool-tag">Block Bootstrap</span>
-          <span class="tool-tag">CAPE-Adjusted</span>
-          <span class="tool-tag">10,000 Paths</span>
-          <span class="tool-tag">Fat Tails</span>
-          <span class="tool-tag">Inverse Solver</span>
-        </div>
-      </div>
-      <div>
-        <div class="tool-num">01</div>
-        <div class="tool-arrow">→</div>
-      </div>
-    </a>
-
-    <a href="/recommender" class="tool-card">
-      <div>
-        <div class="tool-name">Index Recommender</div>
-        <div class="tool-desc">
-          Systematic scoring of 10 major indices across valuation, volatility fit,
-          diversification benefit, tax wrapper compatibility, and factor quality.
-          CAPE data live from FRED. Tailored to your profile, horizon, and existing holdings.
-        </div>
-        <div class="tool-tags">
-          <span class="tool-tag">Live CAPE</span>
-          <span class="tool-tag">5-Factor Scoring</span>
-          <span class="tool-tag">PEA-aware</span>
-          <span class="tool-tag">10 Indices</span>
-          <span class="tool-tag">Transparent Weights</span>
-        </div>
-      </div>
-      <div>
-        <div class="tool-num">02</div>
-        <div class="tool-arrow">→</div>
+    <a href="/apex" class="tool-link">
+      <div class="tool-link-num">01</div>
+      <div class="tool-link-name">APEX Simulator</div>
+      <div class="tool-link-desc">
+        Block bootstrap · CAPE-adjusted<br/>
+        10,000 paths · Contribution solver
       </div>
     </a>
 
+    <a href="/recommender" class="tool-link">
+      <div class="tool-link-num">02</div>
+      <div class="tool-link-name">Index Recommender</div>
+      <div class="tool-link-desc">
+        5-factor scoring · Live prices<br/>
+        PEA-aware · 10 indices
+      </div>
+    </a>
+
+    <a href="/about" class="tool-link">
+      <div class="tool-link-num">03</div>
+      <div class="tool-link-name">Methodology</div>
+      <div class="tool-link-desc">
+        Algorithm notes · Data sources<br/>
+        Assumptions · Limitations
+      </div>
+    </a>
+
+    <a href="/api/cape" class="tool-link" target="_blank">
+      <div class="tool-link-num">API</div>
+      <div class="tool-link-name">Raw CAPE data</div>
+      <div class="tool-link-desc">
+        JSON endpoint · All indices<br/>
+        Live S&P 500 via FRED
+      </div>
+    </a>
+
   </div>
+
+  <!-- ── status bar ── -->
+  <div class="status-bar">
+    <div class="status-item">
+      <span class="status-dot {% if not meta.sp500_live %}amber{% endif %}"></span>
+      <span>
+        S&P 500 CAPE
+        {% if meta.sp500_live %}
+          live · fetched {{ meta.fetched_at[:10] }}
+        {% else %}
+          fallback · set FRED_API_KEY for live data
+        {% endif %}
+      </span>
+    </div>
+    <div class="status-item">
+      <span>Price data · Yahoo Finance · 24h cached</span>
+    </div>
+    <div class="status-item">
+      <span>{{ cape_data | length }} indices tracked</span>
+    </div>
+  </div>
+
 </div>
 
-<!-- ── PRINCIPLES ── -->
-<div class="principles">
-  <div class="sec" style="margin-bottom:1.25rem">Design principles</div>
-  <div class="pr-grid">
-    <div class="pr-card">
-      <div class="pr-icon">⊡</div>
-      <div class="pr-title">Transparent assumptions</div>
-      <div class="pr-text">Every input, weight, and formula is visible. No black boxes. You should understand why the tool says what it says.</div>
-    </div>
-    <div class="pr-card">
-      <div class="pr-icon">◎</div>
-      <div class="pr-title">Valuation-grounded</div>
-      <div class="pr-text">Returns are derived from current CAPE ratios, not naive historical averages. At CAPE 32, the next decade looks different from CAPE 15.</div>
-    </div>
-    <div class="pr-card">
-      <div class="pr-icon">△</div>
-      <div class="pr-title">Honest about uncertainty</div>
-      <div class="pr-text">Outputs are probability distributions, not predictions. The tool shows you the range of outcomes, not a comfortable single number.</div>
-    </div>
-  </div>
-</div>
-
+<script>
+// Date and greeting
+const now = new Date();
+const h   = now.getHours();
+const tod = h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening';
+document.getElementById('time-of-day').textContent = tod;
+document.getElementById('today-date').textContent = now.toLocaleDateString('en-GB', {
+  weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+});
+</script>
 {% endblock %}

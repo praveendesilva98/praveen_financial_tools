@@ -39,7 +39,14 @@ templates = Jinja2Templates(directory="templates")
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request, "active": "home"})
+    cape_data = await get_all_cape_data()
+    meta      = cape_data.pop("_meta", {})
+    return templates.TemplateResponse("index.html", {
+        "request":   request,
+        "active":    "home",
+        "cape_data": cape_data,
+        "meta":      meta,
+    })
 
 
 @app.get("/apex", response_class=HTMLResponse)
